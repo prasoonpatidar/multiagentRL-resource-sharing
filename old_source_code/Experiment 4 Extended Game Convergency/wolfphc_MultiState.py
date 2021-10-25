@@ -17,7 +17,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import time 
 import math
-from scipy.optimize import minimize
+from scipy.optimize import minimize, LinearConstraint
 import plotHistory as ph
     
 def sellerAction2y(sellerAction,sellerActionSize,y_min,y_max):
@@ -260,14 +260,12 @@ class Record:
 
         
      
-def wolfphc_MultiState(N,M,c,V,a,y_min,y_max,actionNumber,times, max_resources_per_seller):
+def wolfphc_MultiState(N,M,c,V,a,y_min,y_max,actionNumber,times, max_resources_per_seller,consumer_penalty_coeff, producer_penalty_coeff):
     #******（1）设置参数*************       parameter seting
     #Q表参数 Q table parameters
     df = 0.30 #discount factor,折扣因子。推荐：df ∈ [0.88,0.99]
     α = 1 / 3 #用于更新Q值的学习率 learning rate for updating the Q value
 
-    consumer_penalty_coeff = 1.
-    producer_penalty_coeff = 0.3
 
     #卖家参数 provider's parameters
     sellerActionSize = actionNumber  #卖家动作数 provider action
@@ -292,6 +290,9 @@ def wolfphc_MultiState(N,M,c,V,a,y_min,y_max,actionNumber,times, max_resources_p
     timeLimit_min = 1 #timeLimit_min是以分钟为单位的限定时间 the unit of timeLimit_min is minutes
     
     for t in range(0,times):
+
+        if (t%100==0):
+            print(f"Completed {t} iterations...")
         #参数 parameters
         δ_win = 1 / (500 + 0.1 * t)
         
@@ -423,6 +424,7 @@ def buyerPurchaseCalculator(cumulativeBuyerExperience, yAll,V_i,a_i,N, consumer_
                             - consumer_penalty_coeff * (cumulativeBuyerExperience[j] - x_i[j])**2
         return -1*buyerUtility
     # solve optimization function for each buyer
-    xi_opt = minimize(singleBuyerUtilityFunction, np.zeros(N), method="CG")
+    xi_opt_sol = minimize(singleBuyerUtilityFunction, np.zeros(N), bounds=[(0,100)]*N)
 
-    return xi_opt.x
+    x_opt = xi_opt_sol.x
+    return x_opt

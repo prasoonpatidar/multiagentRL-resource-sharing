@@ -27,7 +27,7 @@ actionNumber = 3   #动作空间的大小 Action space of j
 times = 800000      #迭代次数 iteration times
 
 #生成买家参数、卖家参数
-# generate providr's unit cost, task completion utility of device j, and required resource occupied time of i
+# generate provider's unit cost, task completion utility of device j, and required resource occupied time of i
 c = np.random.uniform(c_max - 10, c_max, size = N)
 V = np.random.uniform(V_max - 300, V_max, size = M)
 a = np.random.uniform(a_max - 0.5, a_max, size = M)
@@ -68,7 +68,7 @@ plt.legend(bbox_to_anchor=(0.85, 1.3), ncol=5, prop = {'size': 8},handlelength =
 plt.savefig('Convergence-purchase.pdf', dpi=300,bbox_inches = 'tight')
 plt.show()
 
-print("实验一跑完了。")
+print("experiment 1 completes.")
 # print experiment 1 completes
 
 #while 1:

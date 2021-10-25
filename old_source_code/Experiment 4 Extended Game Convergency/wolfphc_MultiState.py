@@ -17,6 +17,7 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import time 
 import math
+from scipy.optimize import minimize
 import plotHistory as ph
     
 def sellerAction2y(sellerAction,sellerActionSize,y_min,y_max):
@@ -30,7 +31,7 @@ def allSellerActions2stateIndex(allSellerActions,N,sellerActionSize):
     return stateIndex
 
 class Seller:
-    def __init__(self,sellerIndex,selleractionSize,stateSize,c_j,y_min,y_max):
+    def __init__(self,sellerIndex,selleractionSize,stateSize,c_j,y_min,y_max,M, max_resources,consumer_penalty_coeff, producer_penalty_coeff):
         #卖家的个人信息
         # basic information of the provider
         self.__c = c_j   #该卖家的成本系数 cost coefficient of the provider
@@ -42,6 +43,10 @@ class Seller:
         self.__actionSize = selleractionSize
         self.__y_min = y_min
         self.__y_max = y_max
+        self.__consumer_penalty_coeff = consumer_penalty_coeff
+        self.__producer_penalty_coeff = producer_penalty_coeff
+        self.__buyerCount = M
+        self.__sellerResourceCount = max_resources
         
         
         #当前状态、当前动作
@@ -54,14 +59,19 @@ class Seller:
         # --Dispatching riders to drivers--
 
         #Q表、平均策略、策略、计数器
-        # Q table, average policy, policy, index count
+        # Q table, average policy, policy, index count, provided resources history
         self.__Q = np.zeros((self.__stateSize,self.__actionSize))
         self.__policy = np.ones((self.__stateSize,self.__actionSize)) \
                         * (1 / self.__actionSize)
         self.__meanPolicy = np.ones((self.__stateSize,self.__actionSize)) \
                         * (1 / self.__actionSize)
-        self.__count = np.zeros(self.__stateSize) 
-        
+        self.__count = np.zeros(self.__stateSize)
+        self.__providedResources = [np.zeros(self.__buyerCount)]
+        self.__demandedResources = [np.zeros(self.__buyerCount)]
+
+    def max_resources(self):
+        return self.__sellerResourceCount
+
     def show(self):
         print("\nself.__c =",self.__c)
         
@@ -110,7 +120,11 @@ class Seller:
         # calculate reward
         yAll = sellerAction2y(allSellerActions,sellerActionSize,
                               self.__y_min,self.__y_max)
-        R = self.__y / sum(yAll) * (1 / self.__y - self.__c) * sum(x_j)
+        # R = self.__y / sum(yAll) * (1 / self.__y - self.__c) * sum(x_j)
+        ##todo: Add a new reward function for sellers based on past demands as a Fx
+
+        R = self.reward(yAll, x_j)
+
 #        print("相应的R值 =",R) # R value
         
         #拿到下一时刻的状态 provider's state at t+1
@@ -125,8 +139,8 @@ class Seller:
         + α * (R + df * self.Qmax())
 #        print("Q表更新后：") # Q table updated
 #        print("self.__Q[self.__currentState] =",self.__Q[self.__currentState])
-        
-        return R #R是该卖家的效益函数的值 R is the revenue for p
+        ## todo: Return new z values along with R
+        return R, self.__providedResources[-1] #R是该卖家的效益函数的值 R is the revenue for p
         
     def updateMeanPolicy(self):
 #        print("平均策略更新前：") # print- before update mean policy
@@ -191,6 +205,30 @@ class Seller:
         print("\n卖家",self.__sellerIndex,":") # print device index
         print("self.__meanPolicy =\n",self.__meanPolicy)
         print("self.__policy =\n",self.__policy)
+
+
+    # Get experience of buyer(fz(i) from given seller
+    def getBuyerExperience(self, i):
+        return np.mean([xr[i] for xr in self.__providedResources])
+
+    # reward function for given action, state and consumer requests
+
+    def reward(self, yAll, x_j):
+
+        deficit = np.maximum(0, np.sum(x_j) - self.max_resources())
+        z_j=  x_j*(1-deficit/np.sum(x_j))
+
+        # Update seller values
+        self.__demandedResources.append(x_j)
+        self.__providedResources.append(z_j)
+
+        # Get reward value based on everything
+        R = 0
+        for i in range(0,self.__buyerCount):
+            R += (self.__y/(np.sum(yAll))) * ( x_j[i]*(1/self.__y) - z_j[i]*self.__c)
+
+        R += self.__producer_penalty_coeff*(np.sum(z_j) - self.max_resources())
+        return R
         
 class Record:
     def __init__(self,N,length):
@@ -222,12 +260,15 @@ class Record:
 
         
      
-def wolfphc_MultiState(N,M,c,V,a,y_min,y_max,actionNumber,times):
+def wolfphc_MultiState(N,M,c,V,a,y_min,y_max,actionNumber,times, max_resources_per_seller):
     #******（1）设置参数*************       parameter seting
     #Q表参数 Q table parameters
     df = 0.30 #discount factor,折扣因子。推荐：df ∈ [0.88,0.99]
     α = 1 / 3 #用于更新Q值的学习率 learning rate for updating the Q value
-    
+
+    consumer_penalty_coeff = 1.
+    producer_penalty_coeff = 0.3
+
     #卖家参数 provider's parameters
     sellerActionSize = actionNumber  #卖家动作数 provider action
     stateSize = sellerActionSize ** N    
@@ -235,13 +276,15 @@ def wolfphc_MultiState(N,M,c,V,a,y_min,y_max,actionNumber,times):
     #******（2）初始化卖家们*************  Initialize the providers
     #初始化卖家 provider initilization
     sellers = []
+    # max_resource_per_seller = 10.0
     for j in range(0,N):
-        tmpSeller = Seller(j,sellerActionSize,stateSize,c[j],y_min,y_max)
+        tmpSeller = Seller(j,sellerActionSize,stateSize,c[j],y_min,y_max, M, max_resources_per_seller[j], consumer_penalty_coeff, producer_penalty_coeff)
         sellers.append(tmpSeller)
     
     #******（3）更新Q表、平均策略、策略************* Q table update, mean policy, policy
     pricesHistory = []          #用于保存"所有的【卖家报价】"的历史记录  save the provider's histroy auxiliary price histroy
-    purchasesHistory = []       #用于保存"所有的【单个买家的总购买数量】"的历史记录 save each device's total resource purchase history
+    purchasesHistory = []       #用于保存"所有的【单个买家的总购买数量】"的历史记录 save each device's total resource demand history
+    providedResourcesHistory = []        # save each device's total resources accepted history
     sellerUtilitiesHistory = []   #用于保存“所有的卖家的效益“的历史记录 save all the providers utility history
     buyerUtilitiesHistory = []    #用于保存“所有的买家的效益“的历史记录 save all the devices utility history
     record = Record(N,500)#用于记录最近的连续500次的【所有卖家的动作的编号】.用于判断是否收敛 record the most recent 500 interations [all the devices' index], for convergency checking
@@ -264,36 +307,60 @@ def wolfphc_MultiState(N,M,c,V,a,y_min,y_max,actionNumber,times):
         pricesHistory.append(prices)
         
         #根据卖家的动作值y,换算出买家的购买数量
+        ##todo: Buyer experience and purchase calculator
+        # get the buyer experience with sellers based on previous purchases
+        cumulativeBuyerExperience = np.zeros((M, N))
+        for i in range(0,M):
+            for j in range(0,N):
+                cumulativeBuyerExperience[i][j] = sellers[j].getBuyerExperience(i)
+
+
         # get the amount of resources purchased by each device based on y
-        X = []  #X是由数组x_j组成的数组
-        for j in range(0,N):
-            x_j = V * yAll[j] + a - np.e #x_j是由【所有买家向第j个卖家购买的产品数量】组成的数组
-            # x_j is a list describes the amount of resources purchased by each device from provider j
-            X.append(x_j)
-        X = np.array(X)
+        X = []
+        for i in range(0,M):
+            X_i = buyerPurchaseCalculator(cumulativeBuyerExperience[i,:], yAll,V[i],a[i],N,consumer_penalty_coeff)
+            X.append(X_i)
+        X = np.array(X).T
+
+        # X = []  #X是由数组x_j组成的数组
+        # for j in range(0,N):
+        #     x_j = V * yAll[j] + a - np.e #x_j是由【所有买家向第j个卖家购买的产品数量】组成的数组
+        #     # x_j is a list describes the amount of resources purchased by each device from provider j
+        #     X.append(x_j)
+        # X = np.array(X)
         
         #保存本次迭代的【每个买家的总购买数量】
         #save [the total amount of resources purchased by each device], sum_X_ij of over N
         purchases = X.sum(axis = 0) #purchases是由【每个买家的总购买数量】组成的数组 purchases is the sum_X_ij of over N
         purchasesHistory.append(purchases)
-        
+        # providedResourcesHistory.append(cumulativeBuyerExperience.sum(axis=0))
+
         #保存本次迭代的【每个买家的效益】 save all the devices unitity in this interation
         #buyerUtilitiesCalculator(X,yAll,V,a,N,M)的返回值是由【每个买家的效益】组成的数组
-        buyerUtilitiesHistory.append(buyerUtilitiesCalculator(X,yAll,V,a,N,M)) 
+        buyerUtilities = buyerUtilitiesCalculator(X,yAll,V,a,N,M, cumulativeBuyerExperience, consumer_penalty_coeff)
+        buyerUtilitiesHistory.append(buyerUtilities)
         
         #更新Q表、平均策略、策略 update the Q table, mean policy, and policy
         sellerUtilities = []    #sellerUtilities是由【每个卖家的效益】组成的数组
+        sellerProvidedResources = []
         # sellerUtilities is a list describes [each provider's utility]
         for j in range(0,N):
-            x_j = V * yAll[j] + a - np.e
-            tmpSellerUtility = sellers[j].updateQ(allSellerActions,x_j,α,df,N,sellerActionSize)#更新Q表
+            # x_j = V * yAll[j] + a - np.e
+            x_j = X[j]
+            tmpSellerUtility, z_j = sellers[j].updateQ(allSellerActions,x_j,α,df,N,sellerActionSize)#更新Q表
+            # todo: Update new z values along with R
             sellerUtilities.append(tmpSellerUtility)
+            sellerProvidedResources.append(z_j)
             sellers[j].updateMeanPolicy()    #更新平均策略 update mean policy
             sellers[j].updatePolicy(δ_win)   #更新策略 update policy
             sellers[j].updateState()         #更新状态 update state
-        sellerUtilities = np.array(sellerUtilities) 
+        sellerUtilities = np.array(sellerUtilities)
         sellerUtilitiesHistory.append(sellerUtilities)
-        
+
+        ##todo: Update new z values(resourceProvidedHistory) along with sellerUtilityHistory
+        sellerProvidedResources = np.array(sellerProvidedResources)
+        providedResourcesHistory.append(sellerProvidedResources)
+
 #        #判断是否已经收敛
 #        #判断标准，如果在【最近的连续500次迭代】中，【所有卖家的报价】保持不变，则认为是已经收敛
 #        if record.isConverged(allSellerActions) == True:
@@ -303,7 +370,8 @@ def wolfphc_MultiState(N,M,c,V,a,y_min,y_max,actionNumber,times):
 #        if (stop - start) / 60.0 > timeLimit_min:
 #            return False
     #Wolfphc算法结束
-    return pricesHistory,purchasesHistory,times
+    # todo: Add resourceProvidedHistory along with sellerUtilityHistory
+    return pricesHistory,purchasesHistory, providedResourcesHistory,times
     
 #    #需要展示的数据:
 #    #画出每个卖家的price的变化
@@ -322,7 +390,7 @@ def wolfphc_MultiState(N,M,c,V,a,y_min,y_max,actionNumber,times):
 #    return True
     
 
-def buyerUtilitiesCalculator(X,yAll,V,a,N,M):#在已知购买数量和定价的情况下，计算出所有买家的效益
+def buyerUtilitiesCalculator(X,yAll,V,a,N,M, cumulativeBuyerExperience, consumer_penalty_coeff):#在已知购买数量和定价的情况下，计算出所有买家的效益
     #输入参数介绍： the input
     #X是由数组x_j组成的数组。x_j是由【所有买家向第j个卖家购买的产品数量】组成的数组
     # X is a list for all the x_j. x_j is a list that describes [the number of resources all the devices purchased from provider j]
@@ -337,8 +405,24 @@ def buyerUtilitiesCalculator(X,yAll,V,a,N,M):#在已知购买数量和定价的�
         buyerUtility = 0
         for j in range(0,N):
             buyerUtility += (V[i] * math.log(X[j][i] - a[i] + np.e) \
-                             - X[j][i] / yAll[j]) * (yAll[j] / sum(yAll))
+                             - X[j][i] / yAll[j]) * (yAll[j] / sum(yAll))\
+                            - consumer_penalty_coeff * (cumulativeBuyerExperience[i][j] - X[j][i])**2
+            # todo: Add the regularizer based on Z values
         buyerUtilities.append(buyerUtility)
     buyerUtilities = np.array(buyerUtilities)
     return buyerUtilities
-    
+
+
+def buyerPurchaseCalculator(cumulativeBuyerExperience, yAll,V_i,a_i,N, consumer_penalty_coeff):
+    # get singleBuyer utility function to maximize
+    def singleBuyerUtilityFunction(x_i):
+        buyerUtility = 0.
+        for j in range(0, N):
+            buyerUtility += (V_i * math.log(x_i[j] - a_i + np.e) \
+                             - x_i[j] / yAll[j]) * (yAll[j] / sum(yAll)) \
+                            - consumer_penalty_coeff * (cumulativeBuyerExperience[j] - x_i[j])**2
+        return -1*buyerUtility
+    # solve optimization function for each buyer
+    xi_opt = minimize(singleBuyerUtilityFunction, np.zeros(N), method="CG")
+
+    return xi_opt.x

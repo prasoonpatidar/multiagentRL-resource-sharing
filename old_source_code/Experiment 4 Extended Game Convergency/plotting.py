@@ -10,9 +10,9 @@ sns.set('paper')
 
 results_dir = 'results'
 plot_dir = 'plots'
-experiment_name='lam5_sig0.5'
-iterations=5000
-max_plot_points = 50
+experiment_name='baseline_3p5c'
+iterations=50000
+max_plot_points = 5000
 colors = ['b','r','g']
 results_dict = pickle.load(open(f'{results_dir}/{experiment_name}_it{iterations}.pb','rb'))
 
@@ -20,7 +20,10 @@ results_dict = pickle.load(open(f'{results_dir}/{experiment_name}_it{iterations}
 fig, axn = plt.subplots(1,3,figsize=(20,6))
 
 #### Price history vs time
-priceHistory = results_dict['priceHistory']
+priceHistory_dict = results_dict['priceHistory']
+priceHistory = []
+for i in range(iterations):
+    priceHistory.append(priceHistory_dict[i])
 N = len(priceHistory[0])
 for j in range(N):
     producerPrices = [xr[j] for xr in priceHistory[::iterations//max_plot_points]]
@@ -67,5 +70,5 @@ axn[2].set_xlabel('iterations',fontsize=24)
 axn[2].set_ylabel('Utilization Fraction',fontsize=24)
 axn[2].set_title('Producer Resource Utilization Fraction',fontsize=24)
 
-plt.savefig(f'{plot_dir}/{experiment_name}_convergence.png',dpi=150)
+plt.savefig(f'{plot_dir}/{experiment_name}_it{iterations}_convergence.png',dpi=150)
 

@@ -43,6 +43,7 @@ class Seller:
         self.__actionSize = selleractionSize
         self.__y_min = y_min
         self.__y_max = y_max
+        # new additions
         self.__consumer_penalty_coeff = consumer_penalty_coeff
         self.__producer_penalty_coeff = producer_penalty_coeff
         self.__buyerCount = M
@@ -66,6 +67,7 @@ class Seller:
         self.__meanPolicy = np.ones((self.__stateSize,self.__actionSize)) \
                         * (1 / self.__actionSize)
         self.__count = np.zeros(self.__stateSize)
+        # self.__providedResources = {}
         self.__providedResources = [np.zeros(self.__buyerCount)]
         self.__demandedResources = [np.zeros(self.__buyerCount)]
 
@@ -280,19 +282,19 @@ def wolfphc_MultiState(N,M,c,V,a,y_min,y_max,actionNumber,times, max_resources_p
         sellers.append(tmpSeller)
     
     #******（3）更新Q表、平均策略、策略************* Q table update, mean policy, policy
-    pricesHistory = []          #用于保存"所有的【卖家报价】"的历史记录  save the provider's histroy auxiliary price histroy
-    purchasesHistory = []       #用于保存"所有的【单个买家的总购买数量】"的历史记录 save each device's total resource demand history
-    providedResourcesHistory = []        # save each device's total resources accepted history
-    sellerUtilitiesHistory = []   #用于保存“所有的卖家的效益“的历史记录 save all the providers utility history
-    buyerUtilitiesHistory = []    #用于保存“所有的买家的效益“的历史记录 save all the devices utility history
+    pricesHistory = {}         #用于保存"所有的【卖家报价】"的历史记录  save the provider's histroy auxiliary price histroy
+    purchasesHistory = {}       #用于保存"所有的【单个买家的总购买数量】"的历史记录 save each device's total resource demand history
+    providedResourcesHistory = {}        # save each device's total resources accepted history
+    sellerUtilitiesHistory = {}   #用于保存“所有的卖家的效益“的历史记录 save all the providers utility history
+    buyerUtilitiesHistory = {}    #用于保存“所有的买家的效益“的历史记录 save all the devices utility history
     record = Record(N,500)#用于记录最近的连续500次的【所有卖家的动作的编号】.用于判断是否收敛 record the most recent 500 interations [all the devices' index], for convergency checking
     start = time.perf_counter()
     timeLimit_min = 1 #timeLimit_min是以分钟为单位的限定时间 the unit of timeLimit_min is minutes
-    
+    start_time = time.time()
     for t in range(0,times):
-
         if (t%100==0):
-            print(f"Completed {t} iterations...")
+            print(f"Completed {t} iterations in {round(time.time()-start_time,3)} secs...")
+            start_time = time.time()
         #参数 parameters
         δ_win = 1 / (500 + 0.1 * t)
         
@@ -305,7 +307,7 @@ def wolfphc_MultiState(N,M,c,V,a,y_min,y_max,actionNumber,times, max_resources_p
     
         #保存本次迭代的【所有卖家的报价】 save this interation's [all the devices' auxiliary price]
         prices = 1 / yAll
-        pricesHistory.append(prices)
+        pricesHistory[t] = prices
         
         #根据卖家的动作值y,换算出买家的购买数量
         ##todo: Buyer experience and purchase calculator
@@ -333,13 +335,13 @@ def wolfphc_MultiState(N,M,c,V,a,y_min,y_max,actionNumber,times, max_resources_p
         #保存本次迭代的【每个买家的总购买数量】
         #save [the total amount of resources purchased by each device], sum_X_ij of over N
         purchases = X.sum(axis = 0) #purchases是由【每个买家的总购买数量】组成的数组 purchases is the sum_X_ij of over N
-        purchasesHistory.append(purchases)
+        purchasesHistory[t] = purchases
         # providedResourcesHistory.append(cumulativeBuyerExperience.sum(axis=0))
 
         #保存本次迭代的【每个买家的效益】 save all the devices unitity in this interation
         #buyerUtilitiesCalculator(X,yAll,V,a,N,M)的返回值是由【每个买家的效益】组成的数组
         buyerUtilities = buyerUtilitiesCalculator(X,yAll,V,a,N,M, cumulativeBuyerExperience, consumer_penalty_coeff)
-        buyerUtilitiesHistory.append(buyerUtilities)
+        buyerUtilitiesHistory[t] = buyerUtilities
         
         #更新Q表、平均策略、策略 update the Q table, mean policy, and policy
         sellerUtilities = []    #sellerUtilities是由【每个卖家的效益】组成的数组
@@ -356,11 +358,11 @@ def wolfphc_MultiState(N,M,c,V,a,y_min,y_max,actionNumber,times, max_resources_p
             sellers[j].updatePolicy(δ_win)   #更新策略 update policy
             sellers[j].updateState()         #更新状态 update state
         sellerUtilities = np.array(sellerUtilities)
-        sellerUtilitiesHistory.append(sellerUtilities)
+        sellerUtilitiesHistory[t]=sellerUtilities
 
         ##todo: Update new z values(resourceProvidedHistory) along with sellerUtilityHistory
         sellerProvidedResources = np.array(sellerProvidedResources)
-        providedResourcesHistory.append(sellerProvidedResources)
+        providedResourcesHistory[t] = sellerProvidedResources
 
 #        #判断是否已经收敛
 #        #判断标准，如果在【最近的连续500次迭代】中，【所有卖家的报价】保持不变，则认为是已经收敛

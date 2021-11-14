@@ -1,0 +1,18 @@
+{
+  "seller": {
+    "count": 2,
+    "max_resources": [12,40],
+    "per_unit_cost": [20,20],
+    "idle_penalty": 0.05,
+    "min_price": 16,
+    "max_price": 40
+  },
+  "buyer": {
+    "count": 5,
+    "a_val": [1.8,1.8,1.8,1.8,1.8],
+    "unfinished_task_penalty": 0.05,
+    "V": [45,48,52,40,60],
+    "min_incentives": [1,1,1,1,1],
+    "max_incentives": [10,10,10,10,10]
+  }
+}

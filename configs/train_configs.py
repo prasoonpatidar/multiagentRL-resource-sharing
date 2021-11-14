@@ -16,7 +16,7 @@ train_config = {
         "evaluate":True,
         "show_results":True,
         "store_results":True
-    }
+    },
 
 }
 

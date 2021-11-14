@@ -17,15 +17,15 @@ import pickle
 from configs.train_configs import get_train_config
 from training.get_trainer import get_trainer
 
-if __name__=='__main__':
+if __name__ == '__main__':
 
     # set run config
     run_config = {
-        'name':'test',
-        'market_config':"test_market",
-        'train_config':"wolfPHC_r1",
-        'results_dir':'results/',
-        'log_dir':'logs/',
+        'name': 'test2',
+        'market_config': "test_market",
+        'train_config': "wolfPHC_r1",
+        'results_dir': 'results/',
+        'log_dir': 'logs/',
     }
 
     # get config named tuples
@@ -47,7 +47,7 @@ if __name__=='__main__':
     console_log.setLevel(logging.DEBUG)
     console_log.setFormatter(formatter)
     logger_master.addHandler(console_log)
-    logger = logging.LoggerAdapter(logger_master,{})
+    logger = logging.LoggerAdapter(logger_master, {})
 
     # Get results file name and appropriate training suite
     results_file = f'results/training/{run_config.name}_{run_config.market_config}_{run_config.train_config}.pb'
@@ -61,11 +61,11 @@ if __name__=='__main__':
 
         # save results
         if train_config.store_results:
-            pickle.dump(results_dict, open(results_file,'wb'))
+            pickle.dump(results_dict, open(results_file, 'wb'))
             # Add code for plotting results as well
 
         # show results
-        if train_config.show_results: # add code to present results in console
+        if train_config.show_results:  # add code to present results in console
             pass
 
         logger.info("Training Finished...")
@@ -94,6 +94,3 @@ if __name__=='__main__':
             pass
 
         logger.info("Evaluation Finished...")
-
-
-

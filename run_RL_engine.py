@@ -23,7 +23,7 @@ if __name__ == '__main__':
     run_config = {
         'name': 'test2',
         'market_config': "test_market",
-        'train_config': "wolfPHC_r1",
+        'train_config': "q_r1",
         'results_dir': 'results/',
         'log_dir': 'logs/',
     }
@@ -48,6 +48,7 @@ if __name__ == '__main__':
     console_log.setFormatter(formatter)
     logger_master.addHandler(console_log)
     logger = logging.LoggerAdapter(logger_master, {})
+    logger_pass = {'logger_base':logger_master}
 
     # Get results file name and appropriate training suite
     results_file = f'results/training/{run_config.name}_{run_config.market_config}_{run_config.train_config}.pb'
@@ -57,7 +58,7 @@ if __name__ == '__main__':
     if train_config.train:
 
         # learn a new policy
-        results_dict = trainer.learn_policy(run_config, market_config, train_config, logger_master)
+        results_dict = trainer.learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
 
         # save results
         if train_config.store_results:
@@ -81,7 +82,7 @@ if __name__ == '__main__':
             exit(1)
 
         # Evaluate the policy
-        eval_dict = trainer.eval_policy(results_dir, logger_master)
+        eval_dict = trainer.eval_policy(seller_info, buyer_info, train_config, results_dir, logger_pass)
 
         # save evaluations
         if train_config.store_results:

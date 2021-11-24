@@ -21,7 +21,6 @@ if __name__ == '__main__':
 
     # set run config
     run_config = {
-        'name': 'test2',
         'market_config': "test_market",
         'train_config': "q_r1",
         'results_dir': 'results/',
@@ -51,7 +50,7 @@ if __name__ == '__main__':
     logger_pass = {'logger_base':logger_master}
 
     # Get results file name and appropriate training suite
-    results_file = f'results/training/{run_config.name}_{run_config.market_config}_{run_config.train_config}.pb'
+    results_file = f'results/training/{run_config.market_config}_{run_config.train_config}.pb'
     trainer = get_trainer(train_config)
 
     # Training the policy
@@ -86,7 +85,7 @@ if __name__ == '__main__':
 
         # save evaluations
         if train_config.store_results:
-            eval_file = f'results/evaluation/{run_config.name}_{run_config.market_config}_{run_config.train_config}.pb'
+            eval_file = f'results/evaluation/{run_config.market_config}_{run_config.train_config}.pb'
             pickle.dump(eval_dict, open(eval_file, 'wb'))
             # Add code for plotting evaluation results
 

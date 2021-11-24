@@ -111,6 +111,26 @@ def getPurchases(buyer_info, cumulativeBuyerExperience, ys, probAll):
     X = np.array(X).T
     return X
 
+def evaluation(sellers, train_config, yAll, X, lr=None, train=True):
+    # Run through sellers to update policy
+    seller_utilities = []
+    seller_penalties = []
+    seller_provided_resources = []
+    if train:
+        for j in range(0, len(sellers)):
+            x_j = X[j]
+            tmpSellerUtility, tmpSellerPenalty, z_j = sellers[j].updateQ(x_j, lr,
+                                                                         train_config.discount_factor, yAll)
+            sellers[j].updatePolicy(train_config.explore_prob)  # update policy
+    else:
+        for j in range(0, len(sellers)):
+            x_j = X[j]
+            tmpSellerUtility, tmpSellerPenalty, z_j = sellers[j].updateQ(x_j, 0., 0., yAll)
+    seller_utilities.append(tmpSellerUtility)
+    seller_penalties.append(tmpSellerPenalty)
+    seller_provided_resources.append(z_j)
+    return seller_utilities, seller_penalties, seller_provided_resources
+
 # Buyer Purchase Calculator
 def buyerPurchaseCalculator(cumulativeBuyerExperience, yAll,V_i,a_i,y_prob, consumer_penalty_coeff):
     # get singleBuyer utility function to maximize

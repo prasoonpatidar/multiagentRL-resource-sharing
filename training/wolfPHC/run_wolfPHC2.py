@@ -51,7 +51,7 @@ def learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
         lr_win = 1 / (500 + 0.1 * train_iter)
 
         # get the prices for all seller agents
-        ys, all_seller_actions = get_ys(sellers, train_config, seller_info)
+        ys, all_seller_actions, action_number = get_ys(sellers, train_config, seller_info)
 
         # print(ys, '==', train_iter)
         probAll, yAll = choose_prob(ys, compare=False, yAll=None)
@@ -89,4 +89,37 @@ def learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
             seller_utilities.append(tmpSellerUtility)
             seller_penalties.append(tmpSellerPenalty)
             seller_provided_resources.append(z_j)
+            sellers[j].updateMeanPolicy()  # 更新平均策略 update mean policy
+            sellers[j].updatePolicy(lr_win)  # 更新策略 update policy
             sellers[j].updateState()
+
+        # Get seller utilties and penalties in history
+        seller_utilities = np.array(seller_utilities)
+        seller_penalties = np.array(seller_penalties)
+        seller_utility_history.append(seller_utilities)
+        seller_penalty_history.append(seller_penalties)
+
+        # update provided resources history
+        seller_provided_resources = np.array(seller_provided_resources)
+        provided_resource_history.append(seller_provided_resources)
+
+    # Get final policies for sellers
+    seller_policies = {}
+    for j in range(seller_info.count):
+        seller_policies[j] =sellers[j].get_policy()
+
+    # Create final results dictionary
+    results_dict = {
+        'seller_policies':seller_policies,
+        'buyer_info':buyer_info,
+        'seller_info':seller_info,
+        'price_history':price_history,
+        'seller_utilties':seller_utility_history,
+        'seller_penalties':seller_penalty_history,
+        'buyer_utilties':buyer_utility_history,
+        'buyer_penalties':buyer_penalty_history,
+        'demand_history':purchase_history,
+        'supply_history':provided_resource_history
+    }
+
+    return results_dict

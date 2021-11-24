@@ -16,7 +16,7 @@ from training.wolfPHC.utils import action2y
 
 def logger_handle(logger_pass):
     logger_pass = dict(logger_pass)
-    logger_base = logger_pass.get('logger_base').getChild('Q_learn_policy')
+    logger_base = logger_pass.get('logger_base').getChild('WoLF_learn_policy')
     logger = logging.LoggerAdapter(logger_base, logger_pass.get('logging_dict'))
     logger_pass['logger_base'] = logger_base
     return logger
@@ -75,7 +75,7 @@ def get_ys(sellers, train_config, seller_info):
         actions.append(tmpSeller.get_next_action())
     actions = np.array(actions)
     ys = action2y(actions, action_number, aux_price_min, aux_price_max)
-    return ys, actions
+    return ys, actions, action_number
 
 def choose_prob(ys, compare=False, yAll=None):
     probAll = []

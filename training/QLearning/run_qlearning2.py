@@ -12,7 +12,7 @@ from scipy.optimize import minimize, LinearConstraint
 # custom libraries
 from training.QLearning.qAgent import qAgent
 # from training.QLearning.utils import action2y,
-from training.QLearning.run_helper import buyerPenaltiesCalculator, buyerUtilitiesCalculator
+from training.QLearning.run_helper import buyerPenaltiesCalculator, buyerUtilitiesCalculator, evaluation
 from training.QLearning.run_helper import logger_handle, initialize_agent, get_ys, choose_prob, cumlativeBuyerExp, getPurchases
 
 
@@ -70,22 +70,10 @@ def learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
                                                   cumulativeBuyerExperience, buyer_info.unfinished_task_penalty)
         buyer_penalty_history.append(buyerPenalties)
 
-        # Run through sellers to update policy
-        seller_utilities = []
-        seller_penalties = []
-        seller_provided_resources = []
-
         # loop parameters
         lr = 1 / (20 + train_iter)
 
-        for j in range(0, len(sellers)):
-            x_j = X[j]
-            tmpSellerUtility, tmpSellerPenalty, z_j = sellers[j].updateQ(x_j, lr,
-                                                                         train_config.discount_factor, yAll)
-            seller_utilities.append(tmpSellerUtility)
-            seller_penalties.append(tmpSellerPenalty)
-            seller_provided_resources.append(z_j)
-            sellers[j].updatePolicy(train_config.explore_prob)  # update policy
+        seller_utilities, seller_penalties, seller_provided_resources = evaluation(sellers, train_config, yAll, X, lr, train=True)
 
         # Get seller utilties and penalties in history
         seller_utilities = np.array(seller_utilities)
@@ -169,17 +157,8 @@ def eval_policy(seller_info, buyer_info, train_config, results_dir, logger_pass)
                                                   cumulativeBuyerExperience, buyer_info.unfinished_task_penalty)
         buyer_penalty_history.append(buyerPenalties)
 
-        # Run through sellers to update policy
-        seller_utilities = []
-        seller_penalties = []
-        seller_provided_resources = []
-
-        for j in range(0, len(sellers)):
-            x_j = X[j]
-            tmpSellerUtility, tmpSellerPenalty, z_j = sellers[j].updateQ(x_j, 0., 0., yAll)
-            seller_utilities.append(tmpSellerUtility)
-            seller_penalties.append(tmpSellerPenalty)
-            seller_provided_resources.append(z_j)
+        seller_utilities, seller_penalties, seller_provided_resources = evaluation(sellers, train_config, yAll, X,
+                                                                                   train=False)
 
         # Get seller utilties and penalties in history
         seller_utilities = np.array(seller_utilities)

@@ -5,7 +5,7 @@ This file contains Agent Class for WolfPHC learning algorithm
 import numpy as np
 
 
-from training.wolfPHC.utils import action2y, allSellerActions2stateIndex
+from training.wolfPHC.utils import sellerAction2y, allSellerActions2stateIndex
 
 
 class wolfphcAgent:
@@ -56,7 +56,7 @@ class wolfphcAgent:
         while randomNumber >= self.__policy[self.__current_state][self.__action]:
             randomNumber -= self.__policy[self.__current_state][self.__action]
             self.__action += 1
-        self.__y = action2y(self.__action, self.__action_size,
+        self.__y = sellerAction2y(self.__action, self.__action_size,
                                   self.y_min, self.y_max)
         return self.__action
 
@@ -68,7 +68,7 @@ class wolfphcAgent:
 
     def updateQ(self, allSellerActions, x_j, α, df, N, sellerActionSize):
         # calculate reward
-        yAll = action2y(allSellerActions, sellerActionSize,
+        yAll = sellerAction2y(allSellerActions, sellerActionSize,
                               self.y_min, self.y_max)
 
         R, utility, penalty = self.reward(yAll, x_j)

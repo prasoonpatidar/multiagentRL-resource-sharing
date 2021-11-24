@@ -11,8 +11,8 @@ from scipy.optimize import minimize, LinearConstraint
 
 # custom libraries
 from training.QLearning.qAgent import qAgent
-from training.QLearning.utils import action2y, buyerPurchaseCalculator
-from training.QLearning.utils import buyerPenaltiesCalculator, buyerUtilitiesCalculator
+# from training.QLearning.utils import action2y,
+from training.QLearning.run_helper import buyerPenaltiesCalculator, buyerUtilitiesCalculator
 from training.QLearning.run_helper import logger_handle, initialize_agent, get_ys, choose_prob, cumlativeBuyerExp, getPurchases
 
 

@@ -22,7 +22,7 @@ train_config = {
         "action_count":4,
         "discount_factor":0.99,
         "explore_prob":0.04,
-        "iterations": 10,
+        "iterations": 200,
         "train": True,
         "evaluate": True,
         "show_results": True,

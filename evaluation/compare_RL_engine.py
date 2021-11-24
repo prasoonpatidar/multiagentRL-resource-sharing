@@ -20,8 +20,7 @@ if __name__ == '__main__':
     compare_config = {
         'name': 'compare1',
         'market_config': "test_market",
-        'log_dir': 'logs/',
-        'run_config_name':
+        'log_dir': 'logs/'
     }
 
     # get config named tuples
@@ -45,8 +44,10 @@ if __name__ == '__main__':
     logger = logging.LoggerAdapter(logger_master, {})
     logger_pass = {'logger_base': logger_master}
 
-    # Get results file name and appropriate training suite
-    results_file = f'results/training/{run_config.name}_{run_config.market_config}_{run_config.train_config}.pb'
+    compare_results =run_comparison(seller_info, buyer_info, logger_pass, market_config)
 
-    compare_results = run_comparison(seller_info, buyer_info, results_dir, logger_pass)
+    compare_file = f'results/compare/{compare_config.name}_{compare_config.market_config}_{compare_config.train_config}.pb'
+    pickle.dump(compare_file, open(compare_file, 'wb'))
+
+    logger.info("Evaluation Finished...")
 

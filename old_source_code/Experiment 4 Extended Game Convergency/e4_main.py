@@ -60,7 +60,7 @@ producer_penalty_coeff = 0.05 # lambda
 #使用相同的输入参数。分别用以下20算法跑一次，对比收敛速度.
 #Use the same set of parameters (c, V,a) to run Q-learning and WoLF-PHC for convergence comparasion
 # QpricesHistory,QpurchasesHistory,Qtimes = qlearning.qlearning(N,M,c,V,a,y_min,y_max,actionNumber,times)#Q-learning算法
-WpricesHistory,WdemandHistory, WpurchasesHistory,Wtimes = wolfphc_MultiState.wolfphc_MultiState(N,M,c,V,a,y_min,y_max,
+wpricesHistory,wpurchasesHistory, wprovidedResourcesHistory,wsellerUtilitiesHistory,  wbuyerUtilitiesHistory, wtimes = wolfphc_MultiState.wolfphc_MultiState(N,M,c,V,a,y_min,y_max,
                                                                                                 actionNumber,times,
                                                                                                 max_resources_per_seller,
                                                                                                 consumer_penalty_coeff,
@@ -79,10 +79,12 @@ with open(f'{results_dir}/{experiment_summary_filename}_it{times}.pb','wb') as f
     pickle.dump(
         {
             'experiment':experiment_summary_filename,
-            'priceHistory': WpricesHistory,
-            'demandHistory':WdemandHistory,
-            'purchaseHistory':WpurchasesHistory,
-            'times':Wtimes,
+            'priceHistory': wpricesHistory,
+            'purchaseHistory':wpurchasesHistory,
+            'providedResourceHistory':wprovidedResourcesHistory,
+            'sellerUtilityHistory': wsellerUtilitiesHistory,
+            'buyerUtilityHistory': wbuyerUtilitiesHistory,
+            'times':wtimes,
         }, f
     )
 

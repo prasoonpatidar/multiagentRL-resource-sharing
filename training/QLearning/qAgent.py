@@ -56,9 +56,18 @@ class qAgent:
     def Qmax(self):
         return max(self.__Q)
 
-    def updateQ(self,actions,x_j,α,df):
-        ys = action2y(actions,self.action_number,self.y_min,self.y_max)
-        R, utility, penalty = self.reward(actions, x_j)
+    # def updateQ(self,actions,x_j,α,df):
+    #     ys = action2y(actions,self.action_number,self.y_min,self.y_max)
+    #     R, utility, penalty = self.reward(ys, x_j)
+    #     # Update Q
+    #
+    #     if self.trainable:
+    #         self.__Q[self.__action] = (1 - α) * self.__Q[self.__action] \
+    #                                   + α * (R + df * self.Qmax())
+    #     return utility, penalty, self.__providedResources[-1]
+
+    def updateQ(self,x_j,α,df, yAll):
+        R, utility, penalty = self.reward(x_j, yAll)
         # Update Q
 
         if self.trainable:
@@ -66,7 +75,26 @@ class qAgent:
                                       + α * (R + df * self.Qmax())
         return utility, penalty, self.__providedResources[-1]
 
-    def reward(self, ys, x_j):
+    # def reward(self, ys, x_j):
+    #
+    #     deficit = np.maximum(0, np.sum(x_j) - self.max_resources)
+    #     z_j=  x_j*(1-deficit/np.sum(x_j))
+    #
+    #     # Update seller values
+    #     self.__demandedResources.append(x_j)
+    #     self.__providedResources.append(z_j)
+    #
+    #     # Get reward value based on everything
+    #     R = 0
+    #     for i in range(0,self.buyer_count):
+    #         R += (self.__y/(np.sum(ys))) * ( x_j[i]*(1/self.__y) - z_j[i] * self.cost_per_unit)
+    #
+    #     utility = R
+    #     penalty = self.penalty_coeff*(np.sum(z_j) - self.max_resources)
+    #     R += penalty
+    #     return R, utility, penalty
+
+    def reward(self, x_j, yAll):
 
         deficit = np.maximum(0, np.sum(x_j) - self.max_resources)
         z_j=  x_j*(1-deficit/np.sum(x_j))
@@ -78,7 +106,7 @@ class qAgent:
         # Get reward value based on everything
         R = 0
         for i in range(0,self.buyer_count):
-            R += (self.__y/(np.sum(ys))) * ( x_j[i]*(1/self.__y) - z_j[i] * self.cost_per_unit)
+            R += (self.__y/(np.sum(yAll))) * ( x_j[i]*(1/self.__y) - z_j[i] * self.cost_per_unit)
 
         utility = R
         penalty = self.penalty_coeff*(np.sum(z_j) - self.max_resources)

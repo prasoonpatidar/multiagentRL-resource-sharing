@@ -153,7 +153,7 @@ def eval_policy(seller_info, buyer_info, train_config, results_dir, logger_pass)
     logger = logging.LoggerAdapter(logger_base, logger_pass.get('logging_dict'))
     logger_pass['logger_base'] = logger_base
 
-    # get required parameters for WolFPHC algorithm
+    # get required parameters for Q-learning algorithm
     aux_price_min = 1 / seller_info.max_price
     aux_price_max = 1 / seller_info.min_price
     logger.info("Fetched raw market information..")
@@ -194,7 +194,9 @@ def eval_policy(seller_info, buyer_info, train_config, results_dir, logger_pass)
             actions.append(tmpSeller.get_next_action())
         actions = np.array(actions)
         ys = action2y(actions, action_number, aux_price_min, aux_price_max)
-
+        # ys [1, 2]
+        # wolf-PHC [1]---1---
+        # [1, 2, 3]
         # Save prices in history
         prices = 1 / ys
         price_history.append(prices)

@@ -141,7 +141,7 @@ class Seller:
         + α * (R + df * self.Qmax())
 #        print("Q表更新后：") # Q table updated
 #        print("self.__Q[self.__currentState] =",self.__Q[self.__currentState])
-        ## todo: Return new z values along with R
+        ## todo: Return new z values along with R--a bit confuse
         return R, self.__providedResources[-1] #R是该卖家的效益函数的值 R is the revenue for p
         
     def updateMeanPolicy(self):
@@ -374,7 +374,7 @@ def wolfphc_MultiState(N,M,c,V,a,y_min,y_max,actionNumber,times, max_resources_p
 #            return False
     #Wolfphc算法结束
     # todo: Add resourceProvidedHistory along with sellerUtilityHistory
-    return pricesHistory,purchasesHistory, providedResourcesHistory,times
+    return pricesHistory,purchasesHistory, providedResourcesHistory,sellerUtilitiesHistory,  buyerUtilitiesHistory, times
     
 #    #需要展示的数据:
 #    #画出每个卖家的price的变化

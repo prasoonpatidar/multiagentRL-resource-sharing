@@ -27,6 +27,7 @@ class Seller:
         #用于wolfphc算法的数据结构
         # data structure for wolfphc algorithm
         self.__Q = np.zeros(self.__actionNumber)
+        #----confuse about the policy size and value
         self.__policy = np.array([1 / self.__actionNumber] \
                                  * self.__actionNumber)
         
@@ -50,9 +51,9 @@ class Seller:
         print("self.__action =",self.__action)
         print("self.__y =",self.__y)
         print("self.__policyHistory = ",self.__policyHistory,end = '\n\n')
-        
-    def actionSelect(self):
-        randomNumber = np.random.random()
+
+    def actionSelect(self): # --confuse
+        randomNumber = np.random.random() # [0/0. 1.0)
         self.__action = 0
         while randomNumber >= self.__policy[self.__action]:
             randomNumber -= self.__policy[self.__action]
@@ -69,7 +70,7 @@ class Seller:
         self.__Q[self.__action] = (1 - α) * self.__Q[self.__action] \
         + α * (R + df * self.Qmax())
         
-    def updatePolicy(self,ε):
+    def updatePolicy(self,ε): #-- confuse += 1 - ε
         for i in range(0,self.__actionNumber):
             self.__policy[i] = ε / self.__actionNumber
         bestAction = np.argmax(self.__Q)

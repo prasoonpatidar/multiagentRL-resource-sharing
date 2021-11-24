@@ -13,13 +13,14 @@ def action2y(action,actionNumber,y_min,y_max):#把动作的编号转换成对应
     return y
 
 # Buyer Purchase Calculator
-def buyerPurchaseCalculator(cumulativeBuyerExperience, yAll,V_i,a_i,N, consumer_penalty_coeff):
+def buyerPurchaseCalculator(cumulativeBuyerExperience, yAll,V_i,a_i,y_prob, consumer_penalty_coeff):
     # get singleBuyer utility function to maximize
+    N = len(y_prob)
     def singleBuyerUtilityFunction(x_i):
         buyerUtility = 0.
         for j in range(0, N):
             buyerUtility += (V_i * math.log(x_i[j] - a_i + np.e) \
-                             - x_i[j] / yAll[j]) * (yAll[j] / sum(yAll)) \
+                             - x_i[j] / yAll[j]) * y_prob[j] \
                             - consumer_penalty_coeff * (cumulativeBuyerExperience[j] - x_i[j])**2
         return -1*buyerUtility
     # solve optimization function for each buyer
@@ -29,13 +30,14 @@ def buyerPurchaseCalculator(cumulativeBuyerExperience, yAll,V_i,a_i,N, consumer_
     return x_opt
 
 # Buyer Utilities Calculator
-def buyerUtilitiesCalculator(X,yAll,V,a,N,M, cumulativeBuyerExperience, consumer_penalty_coeff):
+def buyerUtilitiesCalculator(X,yAll,V,a,y_prob,M, cumulativeBuyerExperience, consumer_penalty_coeff):
+    N = len(y_prob)
     buyerUtilities = []
     for i in range(0,M):
         buyerUtility = 0
         for j in range(0,N):
             buyerUtility += (V[i] * math.log(X[j][i] - a[i] + np.e) \
-                             - X[j][i] / yAll[j]) * (yAll[j] / sum(yAll))
+                             - X[j][i] / yAll[j]) * y_prob[j]
             # todo: Add the regularizer based on Z values
         buyerUtilities.append(buyerUtility)
     buyerUtilities = np.array(buyerUtilities)
@@ -43,7 +45,8 @@ def buyerUtilitiesCalculator(X,yAll,V,a,N,M, cumulativeBuyerExperience, consumer
 
 
 # Buyer Penalties Calculator
-def buyerPenaltiesCalculator(X,yAll,V,a,N,M, cumulativeBuyerExperience, consumer_penalty_coeff):
+def buyerPenaltiesCalculator(X,yAll,V,a,M, cumulativeBuyerExperience, consumer_penalty_coeff):
+    N = len(yAll)
     buyerPenalties = []
     for i in range(0,M):
         buyerPenalty = 0
@@ -53,3 +56,4 @@ def buyerPenaltiesCalculator(X,yAll,V,a,N,M, cumulativeBuyerExperience, consumer
         buyerPenalties.append(buyerPenalty)
     buyerPenalties = np.array(buyerPenalties)
     return buyerPenalties
+

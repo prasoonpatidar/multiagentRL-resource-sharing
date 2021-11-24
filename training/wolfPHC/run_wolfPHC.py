@@ -153,7 +153,6 @@ def learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
 
     return results_dict
 
-
 def eval_policy(seller_info, buyer_info, train_config, results_dir, logger_pass):
     # Initialize the logger
 
@@ -168,8 +167,8 @@ def eval_policy(seller_info, buyer_info, train_config, results_dir, logger_pass)
     aux_price_min = 1 / seller_info.max_price
     aux_price_max = 1 / seller_info.min_price
     logger.info("Fetched raw market information..")
-
-    # initialize seller agents
+    #
+    # # initialize seller agents
     sellers = []
     action_number = train_config.action_count
     for seller_id in range(seller_info.count):
@@ -191,7 +190,7 @@ def eval_policy(seller_info, buyer_info, train_config, results_dir, logger_pass)
     buyer_utility_history = []
     buyer_penalty_history = []
 
-    # Start Loop for training
+    # Start Loop for evaluation
     logger.info("Starting evaluate iterations...")
     start_time = time.time()
     for eval_iter in range(0, train_config.iterations):

@@ -21,7 +21,6 @@ if __name__ == '__main__':
 
     # set run config
     run_config = {
-        'name': 'test3',
         'market_config': "test_market",
         'train_config': "q_r1",
         'results_dir': 'results/',

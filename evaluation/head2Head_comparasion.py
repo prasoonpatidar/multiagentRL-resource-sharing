@@ -5,6 +5,8 @@ import math
 import logging
 import random
 import itertools
+import os, sys
+import pickle
 
 # import custom libraries
 from configs.train_configs import train_config, get_train_config
@@ -17,40 +19,71 @@ from evaluation.get_agent import get_agent
 agents_list = list(train_config.keys())
 print('RL algorithms included in the comparison ',agents_list)
 
-def get_env_agents(seller_info, agents_list,buyer_info, results_dir, logger):
+def get_env_agents(seller_info, agents_list,buyer_info, logger, market_config):
     num_env_agents= seller_info.count-1
     env_agents = random.sample(range(0, len(agents_list)), num_env_agents)
     env_sellers = []
+    agent_order = -1
+    name_env_agents = agents_list[env_agents]
+    # a container to store policies
+    policies = []
     for agent_id in env_agents:
+        # agent order helps ensure matching the seller id with policy id
+        agent_order += 1
         train_config = get_train_config(agents_list[agent_id])
         agent = get_agent(train_config)
+
+        # Load a policy
+        results_file = f'results/training/{market_config}_{train_config}.pb'
+        if os.path.exists(results_file):
+            results_dir = pickle.load(open(results_file, 'rb'))
+        else:
+            logger.error("policy file not present, exiting")
+            exit(1)
+
+        policy = results_dir['seller_policies'][agent_order]
         seller =agent.initialize_agent( seller_info, buyer_info, train_config,
                       logger, compare=True, agentNum=1,
-                       is_trainer=False, results_dir=results_dir)
+                       is_trainer=False, results_dir=results_dir, seller_id=agent_order)
         env_sellers.append(seller)
-    return env_sellers
+        policies.append(policy)
+    return env_sellers, policies,  name_env_agents
 
-def get_target_agents(seller_info, buyer_info, results_dir, logger):
+def get_target_agents(seller_info, buyer_info, logger, market_config):
     target_sellers = []
+    agent_order = seller_info.count
+    policies = []
     for agent in agents_list:
         train_config = get_train_config(agent)
         seller_agent = get_agent(train_config)
-        seller = agent.initialize_agent(seller_info, buyer_info, train_config,
-                                        logger, compare=True, agentNum=1,
-                                        is_trainer=False, results_dir=results_dir)
-        target_sellers.append(seller)
-    return target_sellers
 
-def compare_agents(seller_info, buyer_info, results_dir, logger):
-    env_sellers = get_env_agents(seller_info, agents_list,buyer_info, results_dir, logger)
-    target_sellers = get_target_agents(seller_info, buyer_info, results_dir, logger)
+        # Load a policy
+        results_file = f'results/training/{market_config}_{train_config}.pb'
+        if os.path.exists(results_file):
+            results_dir = pickle.load(open(results_file, 'rb'))
+        else:
+            logger.error("policy file not present, exiting")
+            exit(1)
+        policy = results_dir['seller_policies'][agent_order]
+        seller = seller_agent.initialize_agent(seller_info, buyer_info, train_config,
+                                        logger, compare=True, agentNum=1,
+                                        is_trainer=False, results_dir=results_dir, seller_id=agent_order)
+        target_sellers.append(seller)
+        policies.append(policy)
+    return target_sellers, policies
+
+def compare_agents(seller_info, buyer_info, logger, market_config):
+    env_sellers, env_policies,  name_env_agents = get_env_agents(seller_info, agents_list,buyer_info, logger, market_config)
+    target_sellers, target_policies = get_target_agents(seller_info, buyer_info, logger, market_config)
     sellers_comp = []
-    for seller in target_sellers:
+    policies = []
+    agent_names = []
+    for seller_id in range(0, len(target_sellers)):
         # add one target seller to the environment
-        env = env_sellers
-        env.append(seller)
-        sellers_comp.append(env)
-    return sellers_comp
+        sellers_comp.append(list(env_sellers)+target_sellers[seller_id])
+        policies.append(list(env_policies)+target_policies[seller_id])
+        agent_names.append(list(name_env_agents) + agents_list[seller_id])
+    return sellers_comp, policies, agent_names
 
 def eval_policy(y, yAll, seller, buyer_info):
     prob, y = seller.choose_prob(y, compare=True, yAll=yAll)
@@ -101,7 +134,7 @@ def logger_handle(logger_pass):
     logger_pass['logger_base'] = logger_base
     return logger
 
-def compare_policy(seller_info, buyer_info, train_config, results_dir, sellers, logger):
+def compare_policy(seller_info, buyer_info, train_config, sellers, logger, policies, compared_agents ):
  # Get Containers to record history(Interesting insight: append in python list is O(1))
     price_history = []
     purchase_history = []
@@ -171,7 +204,8 @@ def compare_policy(seller_info, buyer_info, train_config, results_dir, sellers, 
 
     # Create final results dictionary
     compare_dict = {
-        'seller_policies': results_dir['seller_policies'],
+       'compared_agents':compared_agents,
+        'seller_policies': policies,
         'buyer_info': buyer_info,
         'seller_info': seller_info,
         'price_history': price_history,
@@ -185,14 +219,16 @@ def compare_policy(seller_info, buyer_info, train_config, results_dir, sellers, 
 
     return compare_dict
 
-def run_comparison(seller_info, buyer_info, results_dir, logger_pass):
+def run_comparison(seller_info, buyer_info, logger_pass, market_config):
     # Initialize the logger
     logger = logger_handle(logger_pass)
-    sellers_comp = compare_agents(seller_info, buyer_info, results_dir, logger)
+    sellers_comp, policies, agent_names = compare_agents(seller_info, buyer_info, logger, market_config)
     # a container to store the comparison results
     compare_results = []
-    for sellers in sellers_comp:
-        compare_dict = compare_policy(seller_info, buyer_info, train_config, results_dir, sellers, logger)
+    for sellers_id in range(0,len(sellers_comp)):
+        compared_agents = agent_names[sellers_id]
+        compare_dict = compare_policy(seller_info, buyer_info, train_config, sellers_comp[sellers_id], logger, policies, compared_agents )
+
         compare_results.append(compare_dict)
     return compare_results
 

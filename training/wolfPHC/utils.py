@@ -7,8 +7,8 @@ import numpy as np
 from scipy.optimize import minimize
 
 # convert seller action to auxilarry price
-def sellerAction2y(sellerAction, sellerActionSize, y_min, y_max):
-    y = y_min + (y_max - y_min) / sellerActionSize * sellerAction
+def action2y(action,actionNumber,y_min,y_max):#把动作的编号转换成对应的动作值y
+    y = y_min + (y_max - y_min) / actionNumber * action
     return y
 
 # Get next state is based on actions from last round

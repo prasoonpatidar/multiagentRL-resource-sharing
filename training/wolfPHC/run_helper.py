@@ -1,5 +1,5 @@
 '''
-This contains helper functions to run the Q learning algorithm.
+This contains helper functions to run the Wolf-PHC learning algorithm.
 '''
 
 import numpy as np
@@ -10,8 +10,8 @@ import logging
 from scipy.optimize import minimize, LinearConstraint
 
 # custom libraries
-from training.QLearning.qAgent import qAgent
-from training.QLearning.utils import action2y
+from training.wolfPHC.wolfphcAgent import wolfphcAgent
+from training.wolfPHC.utils import action2y
 
 
 def logger_handle(logger_pass):
@@ -38,7 +38,7 @@ def initialize_agent( seller_info, buyer_info, train_config,
         seller_policy = results_dir['seller_policies'][seller_id]
         max_resources = seller_info.max_resources[seller_id]
         cost_per_unit = seller_info.per_unit_cost[seller_id]
-        tmpSeller = qAgent(seller_id, max_resources, cost_per_unit, action_number,
+        tmpSeller = wolfphcAgent(seller_id, max_resources, cost_per_unit, action_number,
                                  aux_price_min, aux_price_max, seller_info.idle_penalty, seller_info.count,
                                  buyer_info.count, seller_policy, is_trainer=False)
         sellers.append(tmpSeller)
@@ -47,7 +47,7 @@ def initialize_agent( seller_info, buyer_info, train_config,
         for seller_id in range(seller_info.count):
             max_resources = seller_info.max_resources[seller_id]
             cost_per_unit = seller_info.per_unit_cost[seller_id]
-            tmpSeller = qAgent(seller_id, max_resources, cost_per_unit, action_number,
+            tmpSeller = wolfphcAgent(seller_id, max_resources, cost_per_unit, action_number,
                                  aux_price_min, aux_price_max, seller_info.idle_penalty, seller_info.count,
                                  buyer_info.count)
             sellers.append(tmpSeller)
@@ -57,9 +57,9 @@ def initialize_agent( seller_info, buyer_info, train_config,
             seller_policy = results_dir['seller_policies'][seller_id]
             max_resources = seller_info.max_resources[seller_id]
             cost_per_unit = seller_info.per_unit_cost[seller_id]
-            tmpSeller = qAgent(seller_id, max_resources, cost_per_unit, action_number,
-                               aux_price_min, aux_price_max, seller_info.idle_penalty, seller_info.count,
-                               buyer_info.count, seller_policy, is_trainer=False)
+            tmpSeller = wolfphcAgent(seller_id, max_resources, cost_per_unit, action_number,
+                                 aux_price_min, aux_price_max, seller_info.idle_penalty, seller_info.count,
+                                 buyer_info.count, seller_policy, is_trainer=False)
             sellers.append(tmpSeller)
         logger.info(f"Initialized {seller_info.count} seller agents for evaluation")
     return sellers, logger
@@ -75,7 +75,7 @@ def get_ys(sellers, train_config, seller_info):
         actions.append(tmpSeller.get_next_action())
     actions = np.array(actions)
     ys = action2y(actions, action_number, aux_price_min, aux_price_max)
-    return ys
+    return ys, actions
 
 def choose_prob(ys, compare=False, yAll=None):
     probAll = []

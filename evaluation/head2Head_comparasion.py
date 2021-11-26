@@ -189,32 +189,34 @@ def compare_policy(seller_info, buyer_info, train_configs, sellers,agents, logge
                                                       actions, train_iter,seller_info, logger, train_config )
             prices.append(price)
             purchases.append(purchase)
+
             buyerUtilities.append(buyerUtility)
             buyerPenalties.append(buyerPenalty)
+
             seller_utilities.append(seller_utility)
             seller_penalties.append(seller_penalty)
             seller_provided_resources.append(seller_provided_resource)
 
         # Save purchased history
-        list(itertools.chain.from_iterable(prices))
+        # list(itertools.chain.from_iterable(prices))
         price_history.append(prices)
-        list(itertools.chain.from_iterable(purchases))
+        # list(itertools.chain.from_iterable(purchases))
         purchase_history.append(purchases)
 
         # Get Buyer utilities and penalties in history
-        list(itertools.chain.from_iterable(buyerUtilities))
+        # list(itertools.chain.from_iterable(buyerUtilities))
         buyer_utility_history.append(buyerUtilities)
-        list(itertools.chain.from_iterable(buyerPenalties))
+        # list(itertools.chain.from_iterable(buyerPenalties))
         buyer_penalty_history.append(buyerPenalties)
 
         # Get seller utilties and penalties in history
-        list(itertools.chain.from_iterable(seller_utilities))
-        list(itertools.chain.from_iterable(seller_penalties))
+        # list(itertools.chain.from_iterable(seller_utilities))
+        # list(itertools.chain.from_iterable(seller_penalties))
         seller_utility_history.append(seller_utilities)
         seller_penalty_history.append(seller_penalties)
 
         # update provided resources history
-        list(itertools.chain.from_iterable(seller_provided_resources))
+        # list(itertools.chain.from_iterable(seller_provided_resources))
         provided_resource_history.append(seller_provided_resources)
 
     # Create final results dictionary

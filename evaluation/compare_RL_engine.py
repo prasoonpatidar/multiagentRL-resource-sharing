@@ -21,7 +21,7 @@ if __name__ == '__main__':
         'name': 'compare1',
         'market_config': "test_market",
         'log_dir': '../logs/',
-        'iterations': 1000
+        'iterations': 100
     }
 
     # get config named tuples

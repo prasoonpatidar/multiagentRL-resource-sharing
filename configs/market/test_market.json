@@ -5,7 +5,8 @@
     "per_unit_cost": [20,20],
     "idle_penalty": 0.05,
     "min_price": 16,
-    "max_price": 40
+    "max_price": 40,
+    "market_name": "test_market"
   },
   "buyer": {
     "count": 5,

@@ -27,6 +27,33 @@ train_config = {
         "evaluate": True,
         "show_results": True,
         "store_results": True
+    },
+    'dqn_r1':{
+        "rl_trainer": "DQN",
+        "agents_store_dir":"results/DQNrun/agents_info",
+        "action_count": 4,
+        "iterations": 200,
+        "train": True,
+        "evaluate": True,
+        "show_results": True,
+        "store_results": True,
+        # Particular to DQN Brain in agents
+        "learning_rate":0.05,
+        "optimizer": "RMSProp",
+        "memory_capacity": 100000,
+        "batch_size": 64,
+        "target_frequency": 10000,
+        "maximum_exploration": 100000,
+        "first_step_memory": 0,
+        "replay_steps": 4,
+        "number_nodes": 256,
+        "target_type": "DQN",  # options DQN, DDQN
+        "memory": "UER",  # options UER, PER
+        "prioritization_scale": 0.5,
+        "dueling": False,
+        "gpu_num": 3,
+        "test": False,
+        "reward_mode": 2,
     }
 
 }

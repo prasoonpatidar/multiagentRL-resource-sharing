@@ -58,3 +58,6 @@ coverage.xml
 # Sphinx documentation
 docs/_build/
 Share
+/training/test_dqn_code/
+/training/multiagent_dqn_reference/
+/training/multiagent_a2c_reference/

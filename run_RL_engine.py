@@ -5,7 +5,6 @@ This is the main python wrapper to run reinforcement learning algorithms for mul
 # import python libraries
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import json
 import os, sys
 import logging
@@ -22,7 +21,7 @@ if __name__ == '__main__':
     # set run config
     run_config = {
         'market_config': "test_market",
-        'train_config': "q_r1",
+        'train_config': "dqn_r1",
         'results_dir': 'results/',
         'log_dir': 'logs/',
     }
@@ -35,11 +34,12 @@ if __name__ == '__main__':
     buyer_info = SimpleNamespace(**market_config["buyer"])
 
     # Initialize Logger
-    logger_master = logging.getLogger(run_config.name)
+    logger_name = run_config.market_config +'__'+run_config.train_config
+    logger_master = logging.getLogger(logger_name)
     logger_master.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
         '%(asctime)s | %(name)s | %(levelname)s | %(message)s')
-    core_logging_handler = WatchedFileHandler(run_config.log_dir + '/' + run_config.name + '.log')
+    core_logging_handler = WatchedFileHandler(run_config.log_dir + '/' + logger_name + '.log')
     core_logging_handler.setFormatter(formatter)
     logger_master.addHandler(core_logging_handler)
     console_log = logging.StreamHandler()

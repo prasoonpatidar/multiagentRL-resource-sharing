@@ -20,6 +20,7 @@ if __name__ == '__main__':
 
     # set run config
     run_config = {
+        'name': 'test4',
         'market_config': "test_market",
         'train_config': "dqn_r1",
         'results_dir': 'results/',

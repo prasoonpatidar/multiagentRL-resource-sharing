@@ -14,25 +14,33 @@ from training.QLearning.qAgent import qAgent
 from training.QLearning.utils import action2y
 
 
-def logger_handle(logger_pass):
+def logger_handle(logger_pass, train=True):
     logger_pass = dict(logger_pass)
-    logger_base = logger_pass.get('logger_base').getChild('Q_learn_policy')
-    logger = logging.LoggerAdapter(logger_base, logger_pass.get('logging_dict'))
-    logger_pass['logger_base'] = logger_base
+    if train:
+        logger_base = logger_pass.get('logger_base').getChild('Q_learn_policy')
+        logger = logging.LoggerAdapter(logger_base, logger_pass.get('logging_dict'))
+        logger_pass['logger_base'] = logger_base
+    else:
+        logger_base = logger_pass.get('logger_base').getChild('Q_evaluate_policy')
+        logger = logging.LoggerAdapter(logger_base, logger_pass.get('logging_dict'))
+        logger_pass['logger_base'] = logger_base
     return logger
+
+def get_params(seller_info, train_config, logger):
+    # get required parameters for Q learning algorithm
+    aux_price_min = 1 / seller_info.max_price
+    aux_price_max = 1 / seller_info.min_price
+    action_number = train_config.action_count
+    discount_factor = train_config.discount_factor
+    logger.info("Fetched raw market information..")
+    return aux_price_max, aux_price_min, action_number, discount_factor
 
 def initialize_agent( seller_info, buyer_info, train_config,
                       logger, compare=False, agentNum=None,
                        is_trainer=True, results_dir=None, seller_id=None):
-
-    # get required parameters for WolFPHC algorithm
-    aux_price_min = 1 / seller_info.max_price
-    aux_price_max = 1 / seller_info.min_price
-    logger.info("Fetched raw market information..")
-
+    aux_price_max, aux_price_min, action_number, discount_factor = get_params(seller_info, train_config, logger)
     # initialize seller agents
     sellers = []
-    action_number = train_config.action_count
     if compare:
         # when compare, we can generate any number of agents
         seller_policy = results_dir['seller_policies'][seller_id]
@@ -43,7 +51,7 @@ def initialize_agent( seller_info, buyer_info, train_config,
                                  buyer_info.count, seller_policy, is_trainer=False)
         sellers.append(tmpSeller)
         logger.info(f"Initialized {agentNum} seller agents for compare")
-    if is_trainer:
+    elif is_trainer:
         for seller_id in range(seller_info.count):
             max_resources = seller_info.max_resources[seller_id]
             cost_per_unit = seller_info.per_unit_cost[seller_id]
@@ -75,7 +83,7 @@ def get_ys(sellers, train_config, seller_info):
         actions.append(tmpSeller.get_next_action())
     actions = np.array(actions)
     ys = action2y(actions, action_number, aux_price_min, aux_price_max)
-    return ys
+    return ys, actions, action_number
 
 def choose_prob(ys, compare=False, yAll=None):
     probAll = []
@@ -83,13 +91,11 @@ def choose_prob(ys, compare=False, yAll=None):
         for j in range(0, len(ys)):
             prob = ys[j] / sum(yAll)
             probAll.append(prob)
-        yAll = yAll
     else:
         for j in range(0, len(ys)):
             prob = ys[j]/sum(ys)
             probAll.append(prob)
-        yAll = ys
-    return probAll, yAll
+    return probAll
 
 def cumlativeBuyerExp(buyer_info, sellers):
     # get the buyer experience with sellers based on previous purchases
@@ -111,24 +117,35 @@ def getPurchases(buyer_info, cumulativeBuyerExperience, ys, probAll):
     X = np.array(X).T
     return X
 
-def evaluation(sellers, train_config, yAll, X, lr=None, train=True):
+def get_lr(train_iter):
+    # loop parameters
+    lr = 1 / (20 + train_iter)
+    return lr
+
+def evaluation(sellers, train_config, all_seller_actions, yAll, X,train_iter, seller_info, logger, train=True):
+    aux_price_max, aux_price_min, action_number, discount_factor = get_params(seller_info, train_config, logger)
     # Run through sellers to update policy
     seller_utilities = []
     seller_penalties = []
     seller_provided_resources = []
+
+    lr = get_lr(train_iter)
     if train:
         for j in range(0, len(sellers)):
             x_j = X[j]
             tmpSellerUtility, tmpSellerPenalty, z_j = sellers[j].updateQ(x_j, lr,
-                                                                         train_config.discount_factor, yAll)
+                                                                         discount_factor, yAll)
             sellers[j].updatePolicy(train_config.explore_prob)  # update policy
+            seller_utilities.append(tmpSellerUtility)
+            seller_penalties.append(tmpSellerPenalty)
+            seller_provided_resources.append(z_j)
     else:
         for j in range(0, len(sellers)):
             x_j = X[j]
             tmpSellerUtility, tmpSellerPenalty, z_j = sellers[j].updateQ(x_j, 0., 0., yAll)
-    seller_utilities.append(tmpSellerUtility)
-    seller_penalties.append(tmpSellerPenalty)
-    seller_provided_resources.append(z_j)
+            seller_utilities.append(tmpSellerUtility)
+            seller_penalties.append(tmpSellerPenalty)
+            seller_provided_resources.append(z_j)
     return seller_utilities, seller_penalties, seller_provided_resources
 
 # Buyer Purchase Calculator

@@ -66,10 +66,10 @@ class wolfphcAgent:
     def Qmax(self):
         return max(self.__Q[self.__next_state])
 
-    def updateQ(self, allSellerActions, x_j, α, df, N, sellerActionSize):
+    def updateQ(self, allSellerActions, x_j, α, df, N, sellerActionSize, yAll):
         # calculate reward
-        yAll = sellerAction2y(allSellerActions, sellerActionSize,
-                              self.y_min, self.y_max)
+        # yAll = sellerAction2y(allSellerActions, sellerActionSize,
+        #                       self.y_min, self.y_max)
 
         R, utility, penalty = self.reward(yAll, x_j)
 

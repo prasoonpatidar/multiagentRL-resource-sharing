@@ -12,20 +12,17 @@ from scipy.optimize import minimize, LinearConstraint
 # custom libraries
 from training.QLearning.qAgent import qAgent
 # from training.QLearning.utils import action2y,
-from training.QLearning.run_helper import buyerPenaltiesCalculator, buyerUtilitiesCalculator, evaluation
+from training.QLearning.run_helper import buyerPenaltiesCalculator, buyerUtilitiesCalculator, evaluation, get_params
 from training.QLearning.run_helper import logger_handle, initialize_agent, get_ys, choose_prob, cumlativeBuyerExp, getPurchases
 
 
 def learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass):
     # Initialize the logger
     logger = logger_handle(logger_pass)
-    # get required parameters for WolFPHC algorithm
-    aux_price_min = 1 / seller_info.max_price
-    aux_price_max = 1 / seller_info.min_price
-    logger.info("Fetched raw market information..")
 
     # initialize seller agents
-    sellers, logger = initialize_agent(seller_info, buyer_info, train_config, logger)
+    sellers, logger = initialize_agent( seller_info, buyer_info, train_config,
+                      logger)
 
     # Get Containers to record history(Interesting insight: append in python list is O(1))
     price_history = []
@@ -45,10 +42,10 @@ def learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
             logger.info("Finished %d training iterations in %.3f secs..." % (train_iter, time.time() - start_time))
 
         # get the prices for all seller agents
-        ys = get_ys(sellers, train_config, seller_info)
+        ys, all_seller_actions, action_number = get_ys(sellers, train_config, seller_info)
 
         # print(ys, '==', train_iter)
-        probAll, yAll = choose_prob(ys, compare=False, yAll=None)
+        probAll = choose_prob(ys, compare=False, yAll=None)
         # Save prices in history
         prices = 1 / ys
         price_history.append(prices)
@@ -70,11 +67,10 @@ def learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
                                                   cumulativeBuyerExperience, buyer_info.unfinished_task_penalty)
         buyer_penalty_history.append(buyerPenalties)
 
-        # loop parameters
-        lr = 1 / (20 + train_iter)
 
-        seller_utilities, seller_penalties, seller_provided_resources = evaluation(sellers, train_config, yAll, X, lr, train=True)
 
+        seller_utilities, seller_penalties, seller_provided_resources = evaluation(sellers, train_config,
+                                               all_seller_actions, ys, X,train_iter, seller_info, logger, train=True)
         # Get seller utilties and penalties in history
         seller_utilities = np.array(seller_utilities)
         seller_penalties = np.array(seller_penalties)
@@ -108,12 +104,11 @@ def learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
 
 def eval_policy(seller_info, buyer_info, train_config, results_dir, logger_pass):
     # Initialize the logger
-    logger = logger_handle(logger_pass)
+    logger = logger_handle(logger_pass, train=False)
 
     # initialize seller agents
-    sellers, logger = initialize_agent(seller_info, buyer_info, train_config,
-                      logger, compare=False, agentNum=None,
-                       is_trainer=False, results_dir=results_dir)
+    sellers, logger =initialize_agent( seller_info, buyer_info, train_config,
+                      logger, is_trainer=False, results_dir=results_dir)
 
     # Get Containers to record history(Interesting insight: append in python list is O(1))
     price_history = []
@@ -133,8 +128,8 @@ def eval_policy(seller_info, buyer_info, train_config, results_dir, logger_pass)
             logger.info("Finished %d training iterations in %.3f secs..." % (train_iter, time.time() - start_time))
 
         # get the prices for all seller agents
-        ys = get_ys(sellers, train_config, seller_info)
-        probAll, yAll = choose_prob(ys, compare=False, yAll=None)
+        ys, all_seller_actions, action_number = get_ys(sellers, train_config, seller_info)
+        probAll = choose_prob(ys, compare=False, yAll=None)
 
         # Save prices in history
         prices = 1 / ys
@@ -157,8 +152,9 @@ def eval_policy(seller_info, buyer_info, train_config, results_dir, logger_pass)
                                                   cumulativeBuyerExperience, buyer_info.unfinished_task_penalty)
         buyer_penalty_history.append(buyerPenalties)
 
-        seller_utilities, seller_penalties, seller_provided_resources = evaluation(sellers, train_config, yAll, X,
-                                                                                   train=False)
+        seller_utilities, seller_penalties, \
+        seller_provided_resources = evaluation(sellers, train_config, all_seller_actions,
+                                               ys, X,train_iter, seller_info, logger, train=False)
 
         # Get seller utilties and penalties in history
         seller_utilities = np.array(seller_utilities)

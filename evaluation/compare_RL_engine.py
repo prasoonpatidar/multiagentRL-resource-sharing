@@ -20,12 +20,13 @@ if __name__ == '__main__':
     compare_config = {
         'name': 'compare1',
         'market_config': "test_market",
-        'log_dir': 'logs/'
+        'log_dir': '../logs/',
+        'iterations': 1000
     }
 
     # get config named tuples
     compare_config = SimpleNamespace(**compare_config)
-    market_config = json.load(open(f"configs/market/{compare_config.market_config}.json"))
+    market_config = json.load(open(f"../configs/market/{compare_config.market_config}.json"))
     seller_info = SimpleNamespace(**market_config["seller"])
     buyer_info = SimpleNamespace(**market_config["buyer"])
 
@@ -44,10 +45,11 @@ if __name__ == '__main__':
     logger = logging.LoggerAdapter(logger_master, {})
     logger_pass = {'logger_base': logger_master}
 
-    compare_results =run_comparison(seller_info, buyer_info, logger_pass, market_config)
+    market_name = compare_config.market_config
+    compare_results =run_comparison(seller_info, buyer_info, logger_pass, market_name, compare_config.iterations)
 
-    compare_file = f'results/compare/{compare_config.name}_{compare_config.market_config}_{compare_config.train_config}.pb'
-    pickle.dump(compare_file, open(compare_file, 'wb'))
+    compare_file = f'../results/compare/{compare_config.name}_{compare_config.market_config}.pb'
+    pickle.dump( compare_results, open(compare_file, 'wb'))
 
     logger.info("Evaluation Finished...")
 

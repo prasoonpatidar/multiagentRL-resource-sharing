@@ -21,8 +21,9 @@ if __name__ == '__main__':
 
     # set run config
     run_config = {
+        'name': 'test4',
         'market_config': "test_market",
-        'train_config': "q_r1",
+        'train_config':  'wolfPHC_r2',
         'results_dir': 'results/',
         'log_dir': 'logs/',
     }

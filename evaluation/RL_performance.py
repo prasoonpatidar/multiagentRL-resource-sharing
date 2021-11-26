@@ -14,7 +14,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # import custom libraries
-from configs.train_configs import get_train_config
 
 train_dir = '../results/training'
 eval_dir = '../results/evaluation'
@@ -23,23 +22,31 @@ name = 'test3'
 market_config = "test_market"
 train_config = "q_r1"
 
+
 results = pickle.load(open(f'{eval_dir}/{name}_{market_config}_{train_config}.pb','rb'))
 
-pricesHistory = results['price_history'] # P_ij
-purchasesHistory = results['demand_history'] # X_ij
-providedResourcesHistory = results['supply_history'] # Z_ij
-sellerUtilitiesHistory = results['seller_utilties'] # fi_j
-buyerUtilitiesHistory = results['buyer_utilties'] # fi_i
+# load compare results
+compare_dir = '../results/compare'
+compare_name = 'compare1'
+market_name = 'test_market'
+compare_results = pickle.load(open(f'{compare_dir}/{compare_name}_{market_name}.pb','rb'))
 
+def get_performance(results):
+    pricesHistory = results['price_history'] # P_ij
+    purchasesHistory = results['demand_history'] # X_ij
+    providedResourcesHistory = results['supply_history'] # Z_ij
+    sellerUtilitiesHistory = results['seller_utilties'] # fi_j
+    buyerUtilitiesHistory = results['buyer_utilties'] # fi_i
+    return pricesHistory, purchasesHistory,  providedResourcesHistory, sellerUtilitiesHistory, buyerUtilitiesHistory
 
 class performance:
     def __init__(self, results):
         self.__pricesHistory = results['price_history']
         self.__purchasesHistory = results['demand_history']
         self.__providedResourcesHistory = results['supply_history']
-        self.__sellerUtilitiesHistory =  results['seller_utilties']
+        self.__sellerUtilitiesHistory = results['seller_utilties']
         self.__buyerUtilitiesHistory = results['buyer_utilties']
-        self.__times = len(buyerUtilitiesHistory)
+        self.__times = len(self.buyerUtilitiesHistory)
 
     def trading(self):
         # axis = 0, get each buyer/devices total provided resource, sum z_ij over j
@@ -139,6 +146,7 @@ class performance:
         plt.title(title, fontsize=fontsize)
         plt.savefig(f'{plot_dir}/{name}_{market_config}_{train_config}_{title}.png', dpi=150)
 
+#
+pricesHistory, purchasesHistory,  providedResourcesHistory, sellerUtilitiesHistory, buyerUtilitiesHistory = get_performance(compare_results[0])
+compare = performance(compare_results[0])
 
-evaluation = performance(results)
-evaluation.buyerUtilitiesHistory_plot(num=200)

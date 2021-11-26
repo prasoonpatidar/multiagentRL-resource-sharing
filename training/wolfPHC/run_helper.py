@@ -11,28 +11,39 @@ from scipy.optimize import minimize, LinearConstraint
 
 # custom libraries
 from training.wolfPHC.wolfphcAgent import wolfphcAgent
-from training.wolfPHC.utils import action2y
+from training.wolfPHC.utils import sellerAction2y
 
 
-def logger_handle(logger_pass):
+def logger_handle(logger_pass, train=True):
     logger_pass = dict(logger_pass)
-    logger_base = logger_pass.get('logger_base').getChild('WoLF_learn_policy')
-    logger = logging.LoggerAdapter(logger_base, logger_pass.get('logging_dict'))
-    logger_pass['logger_base'] = logger_base
+    if train:
+        logger_base = logger_pass.get('logger_base').getChild('WoLF_learn_policy')
+        logger = logging.LoggerAdapter(logger_base, logger_pass.get('logging_dict'))
+        logger_pass['logger_base'] = logger_base
+    else:
+        logger_base = logger_pass.get('logger_base').getChild('WoLF_evaluate_policy')
+        logger = logging.LoggerAdapter(logger_base, logger_pass.get('logging_dict'))
+        logger_pass['logger_base'] = logger_base
     return logger
+
+def get_params(seller_info, train_config, logger):
+    # get required parameters for WolFPHC algorithm
+    discount_factor = train_config.discount_factor
+    learning_rate = train_config.learning_rate
+    aux_price_min = 1 / seller_info.max_price
+    aux_price_max = 1 / seller_info.min_price
+    action_number = train_config.action_count
+    logger.info("Fetched raw market information..")
+    return discount_factor, learning_rate, aux_price_max, aux_price_min, action_number
 
 def initialize_agent( seller_info, buyer_info, train_config,
                       logger, compare=False, agentNum=None,
                        is_trainer=True, results_dir=None, seller_id=None):
-
-    # get required parameters for WolFPHC algorithm
-    aux_price_min = 1 / seller_info.max_price
-    aux_price_max = 1 / seller_info.min_price
-    logger.info("Fetched raw market information..")
-
+    discount_factor, learning_rate, aux_price_max, aux_price_min,\
+    action_number = get_params(seller_info, train_config, logger)
     # initialize seller agents
     sellers = []
-    action_number = train_config.action_count
+
     if compare:
         # when compare, we can generate any number of agents
         seller_policy = results_dir['seller_policies'][seller_id]
@@ -43,7 +54,7 @@ def initialize_agent( seller_info, buyer_info, train_config,
                                  buyer_info.count, seller_policy, is_trainer=False)
         sellers.append(tmpSeller)
         logger.info(f"Initialized {agentNum} seller agents for compare")
-    if is_trainer:
+    elif is_trainer:
         for seller_id in range(seller_info.count):
             max_resources = seller_info.max_resources[seller_id]
             cost_per_unit = seller_info.per_unit_cost[seller_id]
@@ -74,7 +85,7 @@ def get_ys(sellers, train_config, seller_info):
     for tmpSeller in sellers:
         actions.append(tmpSeller.get_next_action())
     actions = np.array(actions)
-    ys = action2y(actions, action_number, aux_price_min, aux_price_max)
+    ys = sellerAction2y(actions, action_number, aux_price_min, aux_price_max)
     return ys, actions, action_number
 
 def choose_prob(ys, compare=False, yAll=None):
@@ -83,13 +94,11 @@ def choose_prob(ys, compare=False, yAll=None):
         for j in range(0, len(ys)):
             prob = ys[j] / sum(yAll)
             probAll.append(prob)
-        yAll = yAll
     else:
         for j in range(0, len(ys)):
             prob = ys[j]/sum(ys)
             probAll.append(prob)
-        yAll = ys
-    return probAll, yAll
+    return probAll
 
 def cumlativeBuyerExp(buyer_info, sellers):
     # get the buyer experience with sellers based on previous purchases
@@ -110,6 +119,44 @@ def getPurchases(buyer_info, cumulativeBuyerExperience, ys, probAll):
         X.append(X_i)
     X = np.array(X).T
     return X
+
+def get_lr(train_iter):
+    # loop parameters
+    lr_win = 1 / (500 + 0.1 * train_iter)
+    return lr_win
+
+def evaluation(sellers, train_config, all_seller_actions, yAll, X,train_iter, seller_info, logger, train=True):
+    discount_factor, learning_rate, aux_price_max, aux_price_min, action_number = get_params(
+        seller_info, train_config, logger)
+    lr_win = get_lr(train_iter)
+    # Run through sellers to update policy
+    seller_utilities = []
+    seller_penalties = []
+    seller_provided_resources = []
+    num_seller = len(sellers)
+    if train:
+        for j in range(0, num_seller):
+            x_j = X[j]
+            tmpSellerUtility, tmpSellerPenalty, z_j = sellers[j].updateQ(all_seller_actions, x_j, learning_rate,
+                                                                         discount_factor, num_seller,
+                                                                         action_number, yAll)
+            seller_utilities.append(tmpSellerUtility)
+            seller_penalties.append(tmpSellerPenalty)
+            seller_provided_resources.append(z_j)
+            sellers[j].updateMeanPolicy()  # 更新平均策略 update mean policy
+            sellers[j].updatePolicy(lr_win)  # 更新策略 update policy
+            sellers[j].updateState()  # 更新状态 update state
+    else:
+        for j in range(0, num_seller):
+            x_j = X[j]
+            tmpSellerUtility, tmpSellerPenalty, z_j = sellers[j].updateQ(all_seller_actions, x_j, learning_rate,
+                                                                         discount_factor, num_seller,
+                                                                         action_number, yAll)
+            seller_utilities.append(tmpSellerUtility)
+            seller_penalties.append(tmpSellerPenalty)
+            seller_provided_resources.append(z_j)
+            sellers[j].updateState()  # update state
+    return seller_utilities, seller_penalties, seller_provided_resources
 
 # Buyer Purchase Calculator
 def buyerPurchaseCalculator(cumulativeBuyerExperience, yAll,V_i,a_i,y_prob, consumer_penalty_coeff):

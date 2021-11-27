@@ -5,7 +5,6 @@ This is the main python wrapper to run reinforcement learning algorithms for mul
 # import python libraries
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import json
 import os, sys
 import logging
@@ -16,14 +15,15 @@ import pickle
 # import custom libraries
 from configs.train_configs import get_train_config
 from training.get_trainer import get_trainer
+from training.learn_policy import learn_policy
 
 if __name__ == '__main__':
 
     # set run config
     run_config = {
-        'name': 'test4',
+        'name': 'test5',
         'market_config': "test_market",
-        'train_config':  'wolfPHC_r2',
+        'train_config': "wolfPHC_r2",
         'results_dir': 'results/',
         'log_dir': 'logs/',
     }
@@ -36,11 +36,12 @@ if __name__ == '__main__':
     buyer_info = SimpleNamespace(**market_config["buyer"])
 
     # Initialize Logger
-    logger_master = logging.getLogger(run_config.name)
+    logger_name = run_config.market_config +'__'+run_config.train_config
+    logger_master = logging.getLogger(logger_name)
     logger_master.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
         '%(asctime)s | %(name)s | %(levelname)s | %(message)s')
-    core_logging_handler = WatchedFileHandler(run_config.log_dir + '/' + run_config.name + '.log')
+    core_logging_handler = WatchedFileHandler(run_config.log_dir + '/' + logger_name + '.log')
     core_logging_handler.setFormatter(formatter)
     logger_master.addHandler(core_logging_handler)
     console_log = logging.StreamHandler()
@@ -52,13 +53,13 @@ if __name__ == '__main__':
 
     # Get results file name and appropriate training suite
     results_file = f'results/training/{run_config.market_config}_{run_config.train_config}.pb'
-    trainer = get_trainer(train_config)
+    # trainer = get_trainer(train_config.rl_trainer)
 
     # Training the policy
     if train_config.train:
 
         # learn a new policy
-        results_dict = trainer.learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
+        results_dict = learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
 
         # save results
         if train_config.store_results:
@@ -74,15 +75,15 @@ if __name__ == '__main__':
     # Evaluating the trained policy
     if train_config.evaluate:
 
-        # Load a policy
-        if os.path.exists(results_file):
-            results_dir = pickle.load(open(results_file, 'rb'))
-        else:
-            logger.error("policy file not present, exiting")
-            exit(1)
+        # # Load a policy
+        # if os.path.exists(results_file):
+        #     results_dir = pickle.load(open(results_file, 'rb'))
+        # else:
+        #     logger.error("policy file not present, exiting")
+        #     exit(1)
 
         # Evaluate the policy
-        eval_dict = trainer.eval_policy(seller_info, buyer_info, train_config, results_dir, logger_pass)
+        eval_dict = learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass, evaluate=True)
 
         # save evaluations
         if train_config.store_results:

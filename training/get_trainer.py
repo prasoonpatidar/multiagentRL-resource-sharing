@@ -2,13 +2,18 @@
 This is a wrapper to fetch different trainers based on training config
 '''
 
-from training.wolfPHC import run_wolfPHC2 as WolfPHCTrainer
-from training.QLearning import run_qlearning2 as QLearningTrainer
+from training.WoLF import wolfTrainer
+from training.QLearning import qTrainer
+from training.DQN import dqnTrainer
+from training.SAC import sacTrainer
 
 trainers = {
-    'wolfPHC':WolfPHCTrainer,
-    'QLearning': QLearningTrainer
+    'wolfPHC': wolfTrainer,
+    'QLearning': qTrainer,
+    'DQN': dqnTrainer,
+    'SAC':sacTrainer
 }
 
-def get_trainer(train_config):
-    return trainers.get(train_config.rl_trainer)
+
+def get_trainer(rl_trainer_name):
+    return trainers.get(rl_trainer_name)

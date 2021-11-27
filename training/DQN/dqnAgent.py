@@ -24,7 +24,7 @@ class dqnAgent:
     # constructor for dqnAgent
     def __init__(self, seller_id, max_resources, cost_per_unit, action_number,
                  aux_price_min, aux_price_max, seller_idle_penalty, seller_count,
-                 buyer_count, seller_policy=None, is_trainer=True,train_config='temp'):
+                 buyer_count, train_config, evaluate=False):
 
         # get basic information
         self.cost_per_unit = cost_per_unit
@@ -32,6 +32,8 @@ class dqnAgent:
         self.max_resources = max_resources
         self.action_number = action_number
         self.penalty_coeff = seller_idle_penalty
+        self.first_step_memory = train_config.first_step_memory
+        self.replay_steps = train_config.replay_steps
         self.seller_count = seller_count
         self.buyer_count = buyer_count
         self.y_min = aux_price_min
@@ -40,12 +42,12 @@ class dqnAgent:
         # get derived information
         self.state_size = seller_count
         self.action_size = action_number
-        self.weights_dir = f'{train_config.agents_store_dir}/{seller_id}'
+        self.weights_dir = f'{train_config.policy_store}/{seller_id}'
         self.weights_file = f'{self.weights_dir}/weights.hd5'
-        self.__y = -1
+        # self.__y = -1
 
         if not os.path.exists(self.weights_dir):
-            os.makedirs(self.weights_dir,mode=0o777)
+            os.makedirs(self.weights_dir)
 
         self.bee_index = seller_id
         self.learning_rate = train_config.learning_rate
@@ -74,6 +76,12 @@ class dqnAgent:
 
         self.__providedResources = [np.zeros(self.buyer_count)]
         self.__demandedResources = [np.zeros(self.buyer_count)]
+
+        # circular buffer to remember past rewards to select best model
+        self.max_average_rewards = -np.inf
+        self.reward_buffer_size = train_config.reward_buffer_size
+        self.reward_buffer = np.zeros(train_config.reward_buffer_size)
+        self.reward_buffer_pos = 0
 
 
     def greedy_actor(self, state):

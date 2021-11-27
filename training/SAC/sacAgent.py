@@ -24,7 +24,7 @@ class sacAgent:
 
     def __init__(self, seller_id, max_resources, cost_per_unit, action_number,
                  aux_price_min, aux_price_max, seller_idle_penalty, seller_count,
-                 buyer_count, seller_policy=None, is_trainer=True, train_config='temp'):
+                 buyer_count,train_config,evaluate=False):
         # get basic information
         self.cost_per_unit = cost_per_unit
         self.id = seller_id
@@ -35,6 +35,7 @@ class sacAgent:
         self.buyer_count = buyer_count
         self.y_min = aux_price_min
         self.y_max = aux_price_max
+        self.deterministic = train_config.deterministic
 
         # get derived information
         self.state_size = seller_count
@@ -42,12 +43,12 @@ class sacAgent:
         self.hidden_layer_size = train_config.hidden_layer_size
         self.replay_buffer_size = train_config.replay_buffer_size
         self.action_range = self.y_max - self.y_min
-        self.weights_dir = f'{train_config.agents_store_dir}/{seller_id}'
+        self.weights_dir = f'{train_config.policy_store}/{seller_id}'
         # self.weights_file = f'{self.weights_dir}/weights.hd5'
-        self.__y = -1
+        # self.__y = -1
 
         if not os.path.exists(self.weights_dir):
-            os.makedirs(self.weights_dir,mode=0o777)
+            os.makedirs(self.weights_dir)
 
         # Initialize replay buffer
         self.replay_buffer = ReplayBuffer(self.replay_buffer_size)

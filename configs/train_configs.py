@@ -8,10 +8,12 @@ train_config = {
     # Wolf-PHC Configs
     'wolfPHC_r1': {
         "rl_trainer": "wolfPHC",
+        "policy_store":"results/wolfPHC/agents_info",
+        "print_freq":5,
         "action_count": 8,
         "discount_factor": 0.3,
         "learning_rate": 0.33,
-        "iterations": 10,
+        "iterations": 300,
         "train":True,
         "evaluate":True,
         "show_results":True,
@@ -19,8 +21,11 @@ train_config = {
     },
     'q_r1':{
         "rl_trainer":"QLearning",
+        "policy_store":"results/Q/agents_info",
+        "print_freq":5,
         "action_count":8,
         "discount_factor":0.99,
+        "learning_rate":0.33,
         "explore_prob":0.04,
         "iterations": 200,
         "train": True,
@@ -30,7 +35,8 @@ train_config = {
     },
     'dqn_r1':{
         "rl_trainer": "DQN",
-        "agents_store_dir":"results/DQNrun/agents_info",
+        "policy_store":"results/DQN/agents_info",
+        "print_freq":5,
         "action_count": 4,
         "iterations": 200,
         "train": True,
@@ -41,6 +47,7 @@ train_config = {
         "learning_rate":0.05,
         "optimizer": "RMSProp",
         "memory_capacity": 100000,
+        "reward_buffer_size":100,
         "batch_size": 64,
         "target_frequency": 10000,
         "maximum_exploration": 100000,
@@ -57,6 +64,8 @@ train_config = {
     },
     'wolfPHC_r2': {
         "rl_trainer": "wolfPHC",
+        "policy_store":"results/wolfPHCR2/agents_info",
+        "print_freq":5,
         "action_count": 8,
         "discount_factor": 0.1,
         "learning_rate": 0.33,
@@ -68,6 +77,7 @@ train_config = {
     },
     'sac_r1':{
         "rl_trainer": "SAC",
+        "print_freq":5,
         "action_count": 8,
         "iterations": 50,
         "train": True,
@@ -76,7 +86,7 @@ train_config = {
         "store_results": True,
 
         # SAC specific parameters
-        "agents_store_dir":"results/SACrun/agents_info",
+        "policy_store":"results/SACrun/agents_info",
         'batch_size': 5,
         'explore_steps': 0,  # for random action sampling in the beginning of training
         'update_itr': 1,

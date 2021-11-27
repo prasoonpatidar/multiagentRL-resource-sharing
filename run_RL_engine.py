@@ -15,14 +15,15 @@ import pickle
 # import custom libraries
 from configs.train_configs import get_train_config
 from training.get_trainer import get_trainer
+from training.learn_policy import learn_policy
 
 if __name__ == '__main__':
 
     # set run config
     run_config = {
-        'name': 'test4',
+        'name': 'test5',
         'market_config': "test_market",
-        'train_config': "sac_r1",
+        'train_config': "wolfPHC_r2",
         'results_dir': 'results/',
         'log_dir': 'logs/',
     }
@@ -52,13 +53,13 @@ if __name__ == '__main__':
 
     # Get results file name and appropriate training suite
     results_file = f'results/training/{run_config.market_config}_{run_config.train_config}.pb'
-    trainer = get_trainer(train_config)
+    # trainer = get_trainer(train_config.rl_trainer)
 
     # Training the policy
     if train_config.train:
 
         # learn a new policy
-        results_dict = trainer.learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
+        results_dict = learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
 
         # save results
         if train_config.store_results:
@@ -74,15 +75,15 @@ if __name__ == '__main__':
     # Evaluating the trained policy
     if train_config.evaluate:
 
-        # Load a policy
-        if os.path.exists(results_file):
-            results_dir = pickle.load(open(results_file, 'rb'))
-        else:
-            logger.error("policy file not present, exiting")
-            exit(1)
+        # # Load a policy
+        # if os.path.exists(results_file):
+        #     results_dir = pickle.load(open(results_file, 'rb'))
+        # else:
+        #     logger.error("policy file not present, exiting")
+        #     exit(1)
 
         # Evaluate the policy
-        eval_dict = trainer.eval_policy(seller_info, buyer_info, train_config, results_dir, logger_pass)
+        eval_dict = learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass, evaluate=True)
 
         # save evaluations
         if train_config.store_results:

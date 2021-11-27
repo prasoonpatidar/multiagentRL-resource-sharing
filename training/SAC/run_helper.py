@@ -1,5 +1,5 @@
 '''
-This contains helper functions to run the DQN algorithm.
+This contains helper functions to run the SAC algorithm.
 '''
 
 import numpy as np
@@ -10,16 +10,20 @@ import logging
 from scipy.optimize import minimize, LinearConstraint
 
 # custom libraries
-from training.DQN.dqnAgent import dqnAgent
-
+from training.SAC.sacAgent import sacAgent
 
 def action2y(action,actionNumber,y_min,y_max):#把动作的编号转换成对应的动作值y
     y = y_min + (y_max - y_min) / actionNumber * action
     return y
 
+def ydiff2action(ys,actionNumber,y_min,y_max):#把动作的编号转换成对应的动作值y
+    action = np.floor((ys * actionNumber)/(y_max - y_min))
+    return action
+
+
 def logger_handle(logger_pass):
     logger_pass = dict(logger_pass)
-    logger_base = logger_pass.get('logger_base').getChild('DQN_learn_policy')
+    logger_base = logger_pass.get('logger_base').getChild('SAC_learn_policy')
     logger = logging.LoggerAdapter(logger_base, logger_pass.get('logging_dict'))
     logger_pass['logger_base'] = logger_base
     return logger
@@ -38,12 +42,12 @@ def initialize_agent(seller_info, buyer_info, train_config,
     action_number = train_config.action_count
     if compare:
         # when compare, we can generate any number of agents
-        seller_policy = results_dir['seller_policies'][seller_id]
+        # seller_policy = results_dir['seller_policies'][seller_id]
         max_resources = seller_info.max_resources[seller_id]
         cost_per_unit = seller_info.per_unit_cost[seller_id]
-        tmpSeller = dqnAgent(seller_id, max_resources, cost_per_unit, action_number,
+        tmpSeller = sacAgent(seller_id, max_resources, cost_per_unit, action_number,
                              aux_price_min, aux_price_max, seller_info.idle_penalty, seller_info.count,
-                             buyer_info.count, seller_policy=seller_policy, is_trainer=False,
+                             buyer_info.count, is_trainer=False,
                              train_config=train_config)
         sellers.append(tmpSeller)
         logger.info(f"Initialized {agentNum} seller agents for compare")
@@ -51,7 +55,7 @@ def initialize_agent(seller_info, buyer_info, train_config,
         for seller_id in range(seller_info.count):
             max_resources = seller_info.max_resources[seller_id]
             cost_per_unit = seller_info.per_unit_cost[seller_id]
-            tmpSeller = dqnAgent(seller_id, max_resources, cost_per_unit, action_number,
+            tmpSeller = sacAgent(seller_id, max_resources, cost_per_unit, action_number,
                                  aux_price_min, aux_price_max, seller_info.idle_penalty, seller_info.count,
                                  buyer_info.count, train_config=train_config)
             sellers.append(tmpSeller)
@@ -61,28 +65,30 @@ def initialize_agent(seller_info, buyer_info, train_config,
             # seller_policy = results_dir['seller_policies'][seller_id]
             max_resources = seller_info.max_resources[seller_id]
             cost_per_unit = seller_info.per_unit_cost[seller_id]
-            tmpSeller = dqnAgent(seller_id, max_resources, cost_per_unit, action_number,
+            tmpSeller = sacAgent(seller_id, max_resources, cost_per_unit, action_number,
                                  aux_price_min, aux_price_max, seller_info.idle_penalty, seller_info.count,
-                                 buyer_info.count, seller_policy=seller_policy, is_trainer=False,
+                                 buyer_info.count, is_trainer=False,
                                  train_config=train_config)
             sellers.append(tmpSeller)
         logger.info(f"Initialized {seller_info.count} seller agents for evaluation")
-    return sellers, logger
 
+    if not is_trainer:
+        for seller_id in range(seller_info.count):
+            sellers[seller_id].load_model()
+
+    return sellers, logger
 
 def get_ys(sellers, train_config, seller_info, state):
     # get required parameters for DQN algorithm
     aux_price_min = 1 / seller_info.max_price
     aux_price_max = 1 / seller_info.min_price
     action_number = train_config.action_count
-    # get actions from all sellers
-    actions = []
+    # get ys from all sellers, remember, SAC runs on continuous space action, thus return ys directly
+    ys = []
     for tmpSeller in sellers:
-        actions.append(tmpSeller.greedy_actor(state))
-    actions = np.array(actions)
-    ys = action2y(actions, action_number, aux_price_min, aux_price_max)
+        ys.append(aux_price_min + tmpSeller.policy_net.get_action(state, train_config.deterministic))
+    ys = np.array(ys)
     return ys
-
 
 def choose_prob(ys, compare=False, yAll=None):
     probAll = []
@@ -119,28 +125,6 @@ def getPurchases(buyer_info, cumulativeBuyerExperience, ys, probAll):
         X.append(X_i)
     X = np.array(X).T
     return X
-
-
-def evaluation(sellers, train_config, yAll, X, lr=None, train=True):
-    # Run through sellers to update policy
-    seller_utilities = []
-    seller_penalties = []
-    seller_provided_resources = []
-    if train:
-        for j in range(0, len(sellers)):
-            x_j = X[j]
-            tmpSellerUtility, tmpSellerPenalty, z_j = sellers[j].updateQ(x_j, lr,
-                                                                         train_config.discount_factor, yAll)
-            sellers[j].updatePolicy(train_config.explore_prob)  # update policy
-    else:
-        for j in range(0, len(sellers)):
-            x_j = X[j]
-            tmpSellerUtility, tmpSellerPenalty, z_j = sellers[j].updateQ(x_j, 0., 0., yAll)
-    seller_utilities.append(tmpSellerUtility)
-    seller_penalties.append(tmpSellerPenalty)
-    seller_provided_resources.append(z_j)
-    return seller_utilities, seller_penalties, seller_provided_resources
-
 
 # Buyer Purchase Calculator
 def buyerPurchaseCalculator(cumulativeBuyerExperience, yAll, V_i, a_i, y_prob, consumer_penalty_coeff):
@@ -189,3 +173,6 @@ def buyerPenaltiesCalculator(X, yAll, V, a, M, cumulativeBuyerExperience, consum
         buyerPenalties.append(buyerPenalty)
     buyerPenalties = np.array(buyerPenalties)
     return buyerPenalties
+
+
+

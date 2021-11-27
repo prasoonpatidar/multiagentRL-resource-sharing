@@ -1,14 +1,14 @@
 '''
-Wrapper function to learn and evaluate dqn policies
+Main wrapper function to train and evaluate SAC algorithm
 '''
 
 import numpy as np
 import time
 
-
 # custom libraries
-from training.DQN.run_helper import buyerPenaltiesCalculator, buyerUtilitiesCalculator, evaluation, action2y
-from training.DQN.run_helper import logger_handle, initialize_agent, get_ys, choose_prob, cumlativeBuyerExp, getPurchases
+from training.SAC.run_helper import buyerPenaltiesCalculator, buyerUtilitiesCalculator, action2y, ydiff2action
+from training.SAC.run_helper import logger_handle, initialize_agent, get_ys, choose_prob, cumlativeBuyerExp, \
+    getPurchases
 
 
 def learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass):
@@ -36,18 +36,18 @@ def learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
     start_time = time.time()
     env_state = np.random.randint(0, train_config.action_count, seller_info.count)
     next_state = np.random.randint(0, train_config.action_count, seller_info.count)
-    max_social_welfare = -np.inf
+
     for train_iter in range(0, train_config.iterations):
 
         if train_iter % 10 == 0:
             logger.info("Finished %d training iterations in %.3f secs..." % (train_iter, time.time() - start_time))
 
         # get the prices for all seller agents
-        actions = []
+        ydiffActions = []
         for tmpSeller in sellers:
-            actions.append(tmpSeller.greedy_actor(env_state))
-        actions = np.array(actions)
-        ys = action2y(actions, train_config.action_count, aux_price_min, aux_price_max)
+            ydiffActions.append(tmpSeller.policy_net.get_action(env_state, deterministic=train_config.deterministic))
+        ydiffActions = np.array(ydiffActions).flatten()
+        ys = aux_price_min + ydiffActions
         probAll, yAll = choose_prob(ys, compare=False, yAll=None)
 
         # Take step in environment: update env state by getting demands from consumers.
@@ -74,7 +74,7 @@ def learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
         buyer_penalty_history.append(buyerPenalties)
 
         # get next state based on actions taken in this round
-        next_state = actions  # actions taken in this round is next state
+        next_state = ydiff2action(ydiffActions,train_config.action_count, aux_price_min,aux_price_max)  # actions taken in this round is next state
 
         # Based on demands, calculate reward for all agents, and add observation to agents
         seller_utilities = []
@@ -83,8 +83,8 @@ def learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
 
         for j in range(0, seller_info.count):
             x_j = X[j]
-            tmpSellerUtility, tmpSellerPenalty, z_j = sellers[j].reward(x_j,yAll)
-            reward = tmpSellerUtility+tmpSellerPenalty
+            tmpSellerUtility, tmpSellerPenalty, z_j = sellers[j].reward(x_j, yAll)
+            reward = tmpSellerUtility + tmpSellerPenalty
 
             # Update seller values
             sellers[j].add_purchase_history(x_j, z_j)
@@ -93,15 +93,19 @@ def learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
             seller_provided_resources.append(z_j)
 
             # train agent
-            sellers[j].observe((env_state, actions, reward, next_state, False))
-            if train_iter >= train_config.first_step_memory:
-                sellers[j].decay_epsilon()
-                if train_iter % train_config.replay_steps == 0:
-                    sellers[j].replay()
-                sellers[j].update_target_model()
+
+            sellers[j].replay_buffer.push(env_state, [ydiffActions[sellers[j].id]], reward, next_state, False)
+            if len(sellers[j].replay_buffer) > train_config.batch_size:
+                for i in range(train_config.update_itr):
+                    _ = sellers[j].update(train_config.batch_size, reward_scale=10.,
+                                          auto_entropy=train_config.auto_entropy,
+                                          target_entropy=-1. * sellers[j].action_size)
+
+            if train_iter % (train_config.update_step_size) == 0:
+                sellers[j].save_model()
 
         # set current state to next state
-        env_state=next_state
+        env_state = next_state
 
         # Get seller utilties and penalties in history
         seller_utilities = np.array(seller_utilities)
@@ -113,14 +117,6 @@ def learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
         seller_provided_resources = np.array(seller_provided_resources)
         provided_resource_history.append(seller_provided_resources)
 
-
-        # Update DQN weights if social welfare is better than max social welfare
-        social_welfare =np.sum(buyerUtilities) + np.sum(seller_utilities) + \
-                        np.sum(buyerPenalties) +np.sum(seller_penalties)
-        if social_welfare > max_social_welfare:
-            for j in range(0, seller_info.count):
-                sellers[j].brain.save_model()
-            max_social_welfare = social_welfare
 
     results_dict = {
         'policy_store': train_config.agents_store_dir,
@@ -136,7 +132,6 @@ def learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass)
     }
 
     return results_dict
-
 
 def eval_policy(seller_info, buyer_info, train_config, results_dir, logger_pass):
     # Initialize the logger
@@ -167,18 +162,19 @@ def eval_policy(seller_info, buyer_info, train_config, results_dir, logger_pass)
     start_time = time.time()
     env_state = np.random.randint(0, train_config.action_count, seller_info.count)
     next_state = np.random.randint(0, train_config.action_count, seller_info.count)
-    max_social_welfare = -np.inf
+
+
     for eval_iter in range(0, train_config.iterations):
 
         if eval_iter % 10 == 0:
             logger.info("Finished %d evaluation iterations in %.3f secs..." % (eval_iter, time.time() - start_time))
 
         # get the prices for all seller agents
-        actions = []
+        ydiffActions = []
         for tmpSeller in sellers:
-            actions.append(tmpSeller.greedy_actor(env_state))
-        actions = np.array(actions)
-        ys = action2y(actions, train_config.action_count, aux_price_min, aux_price_max)
+            ydiffActions.append(tmpSeller.policy_net.get_action(env_state, deterministic=train_config.deterministic))
+        ydiffActions = np.array(ydiffActions).flatten()
+        ys = aux_price_min + ydiffActions
         probAll, yAll = choose_prob(ys, compare=False, yAll=None)
 
         # Save prices in history
@@ -203,7 +199,7 @@ def eval_policy(seller_info, buyer_info, train_config, results_dir, logger_pass)
         buyer_penalty_history.append(buyerPenalties)
 
         # get next state based on actions taken in this round
-        next_state = actions  # actions taken in this round is next state
+        next_state = ydiff2action(ydiffActions,train_config.action_count, aux_price_min,aux_price_max)  # actions taken in this round is next state
 
         # Based on demands, calculate reward for all agents, and add observation to agents
         seller_utilities = []
@@ -250,6 +246,4 @@ def eval_policy(seller_info, buyer_info, train_config, results_dir, logger_pass)
     }
 
     return eval_dict
-
-
 

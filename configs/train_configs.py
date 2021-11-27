@@ -65,6 +65,27 @@ train_config = {
         "evaluate":True,
         "show_results":True,
         "store_results":True
+    },
+    'sac_r1':{
+        "rl_trainer": "SAC",
+        "action_count": 8,
+        "iterations": 50,
+        "train": True,
+        "evaluate": True,
+        "show_results": True,
+        "store_results": True,
+
+        # SAC specific parameters
+        "agents_store_dir":"results/SACrun/agents_info",
+        'batch_size': 5,
+        'explore_steps': 0,  # for random action sampling in the beginning of training
+        'update_itr': 1,
+        'auto_entropy':True,
+        'deterministic':False,
+        'hidden_layer_size': 512,
+        'replay_buffer_size':1e3,
+        'update_step_size':20,
+
     }
 }
 

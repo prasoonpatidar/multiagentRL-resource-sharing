@@ -95,7 +95,7 @@ class dqnAgent:
 
         utility = R
         penalty = self.penalty_coeff * (np.sum(z_j) - self.max_resources)
-        R += penalty
+        # R += penalty
         return utility, penalty, z_j
 
     def add_purchase_history(self, x_j, z_j):

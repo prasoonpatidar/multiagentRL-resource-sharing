@@ -75,7 +75,7 @@ def trading(providedResourcesHistory):
         provided_seller.append(temp_seller)
     return provided_seller, provided_buyer
 
-provided_seller, provided_buyer = trading(providedResourcesHistory)
+
 
 def get_mean_min_max(data):
     # get market mean, min, and max of the variable at each step
@@ -174,60 +174,129 @@ def average_performance(slice):
 
 def one_agent_plot(single_agent, slice, x, title, name):
     individual = sliceList(single_agent, slice)
-    plt.subplots(figsize=(14, 8))
+    fig, axn = plt.subplots(1, 2, figsize=(14, 8), sharey=True)
     plt.tight_layout()
     plt.subplots_adjust(top=0.9)
 
-
     for ele_i in range(len(individual)):
-        plt.subplot(1, len(individual), ele_i+1)
+        if ele_i < 1:
+            nameT = 'Seller'
+        else:
+            nameT = 'Buyer'
         for indx in range(len(individual[ele_i][0])):
-            plt.plot(x, [e[indx] for e in individual[ele_i]], label = f'{name}_{indx+1}')
-        plt.legend(loc='upper left')
-        plt.title(title[ele_i])
-        plt.xlabel('Iterations')
+            axn[ele_i].plot(x, [e[indx] for e in individual[ele_i]], label = f'{nameT}_{indx+1}')
+        axn[ele_i].legend(loc='upper left')
+        axn[ele_i].set_title(title[ele_i])
+        axn[ele_i].set_xlabel('Iterations')
+        axn[ele_i].set_ylabel('Utilities')
     plt.suptitle(name, y=0.98, fontsize=16)
-    plt.savefig(f'{plot_dir}/single entity plot_{slice}_{name}.png', dpi=150)
+    plt.savefig(f'{plot_dir}/Buyer VS Seller_{name}_{slice}.png', dpi=150)
+
+
 
 def individual_plot(slice):
-    x = getX(slice)
+
 
     provided_seller, provided_buyer = trading(providedResourcesHistory)
     # seller plot
-    one_seller = [pricesHistory, sellerUtilitiesHistory, seller_penalty_history, provided_seller]
-    title = ['Seller prices', 'Seller utilities', 'Seller penalties', 'Seller provided resources']
+    one_seller = [pricesHistory, sellerUtilitiesHistory, purchasesHistory, buyerUtilitiesHistory]
+    title = ['Seller prices', 'Seller utilities', 'Buyer demand', 'Buyer utilities']
     names = 'Seller'
     one_agent_plot(one_seller, slice, x, title, names)
 
-    # buyer plot
-    one_buyer = [purchasesHistory, buyerUtilitiesHistory, buyer_penalty_history, provided_buyer]
-    titleb = ['Buyer prices', 'Buyer utilities', 'Buyer penalties', 'Buyer provided resources']
-    nameb = 'Buyer'
-    one_agent_plot(one_buyer, slice, x, titleb, nameb)
+    # # buyer plot
+    # one_buyer = [purchasesHistory, buyerUtilitiesHistory, buyer_penalty_history, provided_buyer]
+    # titleb = ['Buyer demand', 'Buyer utilities', 'Buyer penalties', 'Buyer provided resources']
+    # nameb = 'Buyer'
+    # one_agent_plot(one_buyer, slice, x, titleb, nameb)
+    #
+    # # the buyer purchase and provided plot
+    # purchase = slice_data(purchasesHistory, slice)
+    # provide = slice_data(provided_buyer, slice)
+    #
+    #
+    #
+    # fig, axn = plt.subplots(1, 3, figsize=(14, 8))
+    # def comp_plot(fig, y1, y2, title, ny1, ny2):
+    #     for i in range(len(y1[0])):
+    #         py = [val[i] for val in y1]
+    #         axn[fig].plot(x, py, label = f'{ny1} {i}')
+    #         if i < len(y2[0]):
+    #             pr = [val[i] for val in y2]
+    #             axn[fig].plot(x, pr, label =f' {ny2} {i}', linestyle = '--')
+    #         axn[fig].legend()
+    #     axn[fig].set_xlabel('iterations', fontsize=12)
+    #     axn[fig].set_ylabel('Computation resources', fontsize=12)
+    #     axn[fig].set_title(title, fontsize=12)
+    #
+    # comp_plot(0, purchase, provide, 'Buyer purchases VS buyer provided', nameb, nameb)
+    # comp_plot(1, bU, sU, 'Buyer utilities VS seller utilities', nameb, names)
+    #
+    # plt.savefig(f'{plot_dir}/seller VS buyer_{slice}_{name}.png', dpi=150)
 
-    purchase = slice_data(purchasesHistory, slice)
-    provide = slice_data(provided_buyer, slice)
+slice = 100
+x = getX(slice)
+provided_seller, provided_buyer = trading(providedResourcesHistory)
 
-    bU = slice_data(buyerUtilitiesHistory, slice)
-    sU = slice_data(sellerUtilitiesHistory, slice)
-    fig, axn = plt.subplots(1, 3, figsize=(14, 8))
-    def comp_plot(fig, y1, y2, title, ny1, ny2):
-        for i in range(len(y1[0])):
-            py = [val[i] for val in y1]
-            axn[fig].plot(x, py, label = f'{ny1} {i}')
-            if i < len(y2[0]):
-                pr = [val[i] for val in y2]
-                axn[fig].plot(x, pr, label =f' {ny2} {i}', linestyle = '--')
-            axn[fig].legend()
-        axn[fig].set_xlabel('iterations', fontsize=12)
-        axn[fig].set_ylabel('Computation resources', fontsize=12)
-        axn[fig].set_title(title, fontsize=12)
+# average_performance(slice)
+# individual_plot(slice)
 
-    comp_plot(0, purchase, provide, 'Buyer purchases VS buyer provided', nameb, nameb)
-    comp_plot(1, bU, sU, 'Buyer utilities VS seller utilities', nameb, names)
+plt.subplots()
+purchase = [sum(ele) for ele in slice_data(purchasesHistory, slice)]
+provide = [sum(ele) for ele in slice_data(provided_buyer, slice)]
+plt.plot(x, provide,label = 'provided resource', c='g')
+plt.plot(x, purchase,label = 'demanded resource', c='b', linestyle = '--')
+plt.legend(loc='upper left')
+plt.xlabel('Iterations')
+plt.ylabel('Resources')
+plt.title("Buyers' demanded resources VS provided resources")
+plt.savefig(f'{plot_dir}/seller VS buyer_{slice}_provided VS demand.png', dpi=150)
 
-    plt.savefig(f'{plot_dir}/seller VS buyer_{slice}_{name}.png', dpi=150)
+plt.subplots()
+bU = [sum(e) for e in slice_data(buyerUtilitiesHistory, slice)]
+b_std = [np.std(e) for e in slice_data(buyerUtilitiesHistory, slice)]
+sU = [sum(e) for e in slice_data(sellerUtilitiesHistory, slice)]
+s_std = [np.std(e) for e in slice_data(sellerUtilitiesHistory, slice)]
 
-average_performance(100)
-individual_plot(100)
+bp = [sum(e) for e in slice_data(buyer_penalty_history, slice)]
+bp_std = [np.std(e) for e in slice_data(buyer_penalty_history, slice)]
+sp = [sum(e) for e in slice_data(seller_penalty_history, slice)]
+sp_std = [np.std(e) for e in slice_data(seller_penalty_history, slice)]
+plt.errorbar(x, bU,b_std, label='Buyer utilities', c='g', marker='^')
+plt.errorbar(x, bp, bp_std, label='Buyer penalties', c='g', linestyle='--', marker='^')
+plt.errorbar(x, sU, s_std, label='Seller utilities', c='b', marker='^')
+plt.errorbar(x, sp, sp_std, label='Seller penalties', c='b', linestyle='--', marker='^')
+plt.legend(loc='upper left')
+plt.xlabel('Iterations')
+plt.ylabel('Utilities')
+plt.title("Utilities VS penalties")
+plt.savefig(f'{plot_dir}/seller VS buyer_{slice}_Utilities VS penalties', dpi=150)
 
+# plot the buyer utilities and seller utilities
+plt.subplots()
+bsU = [sellerUtilitiesHistory, buyerUtilitiesHistory]
+sub_titles = ['Seller utilities', 'Buyer utilities']
+sup_title = 'Utilities'
+one_agent_plot(bsU , slice, x, sub_titles, sup_title)
+
+#plot seller prices
+plt.subplots()
+s_price = [np.mean(e) for e in slice_data(pricesHistory, slice)]
+price_std = [np.std(e) for e in slice_data(pricesHistory, slice)]
+plt.errorbar(x,s_price, price_std, label='Seller prices', c='b', marker='^' )
+plt.legend(loc='upper left')
+plt.xlabel('Iterations')
+plt.ylabel('Prices')
+plt.title("Seller prices")
+plt.savefig(f'{plot_dir}/seller_{slice}_Seller prices', dpi=150)
+
+#plot buyer demand
+plt.subplots()
+s_price = [np.mean(e) for e in slice_data(purchasesHistory, slice)]
+price_std = [np.std(e) for e in slice_data(purchasesHistory, slice)]
+plt.errorbar(x,s_price, price_std, label='Buyer demand', c='g', marker='^' )
+plt.legend(loc='upper left')
+plt.xlabel('Iterations')
+plt.ylabel('Buyer demand')
+plt.title('Buyer demand')
+plt.savefig(f'{plot_dir}/buyer_{slice}_buyer demands', dpi=150)

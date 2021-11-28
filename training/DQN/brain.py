@@ -28,13 +28,13 @@ def huber_loss(y_true, y_predict):
 
 class Brain(object):
 
-    def __init__(self, state_size, action_size, brain_name, train_config):
+    def __init__(self, state_size, action_size, brain_name, train_config, evaluate=False):
         self.state_size = state_size
         self.action_size = action_size
         self.weight_backup = brain_name
         self.batch_size = train_config.batch_size
         self.learning_rate = train_config.learning_rate
-        self.test = train_config.test
+        self.test = evaluate
         self.num_nodes = train_config.number_nodes
         self.dueling = train_config.dueling
         self.optimizer_model = train_config.optimizer

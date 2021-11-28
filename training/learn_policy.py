@@ -47,7 +47,7 @@ def learn_policy(run_config, seller_info, buyer_info, train_config, logger_pass,
 
         # debug info
         if train_iter % train_config.print_freq == 0:
-            logger.info("Finished %d training iterations in %.3f secs..." % (train_iter, time.time() - start_time))
+            logger.info("Finished %d %s iterations in %.3f secs..." % (train_iter, 'evaluation' if evaluate else 'training', time.time() - start_time))
 
         # get next set of actions from all sellers from trainer
         actions, ys = trainer.get_actions(sellers,env_state)

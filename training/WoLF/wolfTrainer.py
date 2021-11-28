@@ -7,7 +7,7 @@ import pickle
 
 from training.WoLF.wolfAgent import wolfAgent
 from training.WoLF.wolf_utils import allSellerActions2stateIndex
-from training.seller_utils import action2y
+from training.seller_utils import action2y, ydiff2action
 
 
 def initialize_agents(seller_info, buyer_info, train_config, logger, evaluate=False):
@@ -53,7 +53,7 @@ def get_actions(sellers, state):
     actions = []
     ys = []
     for j in range(len(sellers)):
-        seller_action = sellers[j].get_next_action(state)
+        seller_action = sellers[j].get_next_action(int(state))
         actions.append(seller_action)
         ys.append(action2y(seller_action, sellers[j].action_number, sellers[j].y_min, sellers[j].y_max))
 
@@ -63,6 +63,12 @@ def get_actions(sellers, state):
 def get_next_state(sellers, state, actions):
     # next state is based on actions taken in this state
     next_state = allSellerActions2stateIndex(actions, sellers[0].seller_count, sellers[0].action_number)
+    return next_state
+
+def get_next_state_from_ys(ys, action_number, y_min, y_max, seller_count):
+    ydiff = ys - y_min
+    actions = ydiff2action(ydiff,action_number, y_min,y_max)
+    next_state = allSellerActions2stateIndex(actions, seller_count, action_number)
     return next_state
 
 

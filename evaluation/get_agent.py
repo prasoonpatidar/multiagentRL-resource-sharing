@@ -8,7 +8,6 @@ from training.QLearning import run_helper as QLearning_helper
 
 # 'wolfPHC': wolfPHC_helper,
 agents = {
-
     'QLearning': QLearning_helper,
     'wolfPHC': wolfPHC_helper,
 }

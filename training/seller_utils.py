@@ -24,7 +24,7 @@ def choose_prob(ys, compare=False, yAll=None):
             prob = ys[j] / sum(ys)
             probAll.append(prob)
         yAll = ys
-    return probAll, yAll
+    return np.array(probAll), np.array(yAll)
 
 
 def get_rewards(sellers, X, yAll):
@@ -34,7 +34,10 @@ def get_rewards(sellers, X, yAll):
         # get x_j vals for given seller
         x_j = X[j]
         deficit = np.maximum(0, np.sum(x_j) - sellers[j].max_resources)
-        z_j = x_j * (1 - deficit / np.sum(x_j))
+        if np.sum(x_j)==0:
+            z_j = np.zeros_like(x_j)
+        else:
+            z_j = x_j * (1 - deficit / np.sum(x_j))
 
         # Get reward value based on everything
         utility = 0

@@ -52,7 +52,7 @@ class dqnAgent:
         self.bee_index = seller_id
         self.learning_rate = train_config.learning_rate
         self.gamma = 0.95
-        self.brain = Brain(self.state_size, self.action_size, self.weights_file, train_config)
+        self.brain = Brain(self.state_size, self.action_size, self.weights_file, train_config, evaluate)
         self.memory_model = train_config.memory
 
 
@@ -70,7 +70,7 @@ class dqnAgent:
         self.max_exploration_step = train_config.maximum_exploration
         self.batch_size = train_config.batch_size
         self.step = 0
-        self.test = train_config.test
+        self.test = evaluate
         if self.test:
             self.epsilon = MIN_EPSILON
 

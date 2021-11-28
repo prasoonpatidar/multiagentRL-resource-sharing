@@ -21,9 +21,9 @@ if __name__ == '__main__':
 
     # set run config
     run_config = {
-        'name': 'test5',
-        'market_config': "test_market",
-        'train_config': "wolfPHC_r2",
+        # 'name': 'marketA_T1',
+        'market_config': "market_large",
+        'train_config': "dqn_r1",
         'results_dir': 'results/',
         'log_dir': 'logs/',
     }
@@ -54,6 +54,12 @@ if __name__ == '__main__':
     # Get results file name and appropriate training suite
     results_file = f'results/training/{run_config.market_config}_{run_config.train_config}.pb'
     # trainer = get_trainer(train_config.rl_trainer)
+
+    # set action count in trian config
+    train_config.action_count = seller_info.action_count
+    # add market name to policy store
+    policy_dir_path = train_config.policy_store.split("/")
+    train_config.policy_store = '/'.join([policy_dir_path[0],run_config.market_config,run_config.train_config])
 
     # Training the policy
     if train_config.train:

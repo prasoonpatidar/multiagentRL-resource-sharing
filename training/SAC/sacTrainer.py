@@ -54,7 +54,11 @@ def get_initial_state(seller_info, buyer_info, train_config, logger):
 def get_actions(sellers, state):
     ydiffActions = []
     for j in range(len(sellers)):
-        ydiffActions.append(sellers[j].policy_net.get_action(state, deterministic=sellers[j].deterministic))
+        ydiffAction = sellers[j].policy_net.get_action(state, deterministic=sellers[j].deterministic)
+        if not np.isnan(ydiffAction):
+            ydiffActions.append(ydiffAction)
+        else:
+            ydiffActions.append(0.)
     ydiffActions = np.array(ydiffActions).flatten()
     ys = sellers[j].y_min + ydiffActions
     return ydiffActions, np.array(ys)
@@ -63,6 +67,10 @@ def get_actions(sellers, state):
 def get_next_state(sellers, state, actions):
     return ydiff2action(actions, sellers[0].action_number, sellers[0].y_min, sellers[0].y_max)
 
+def get_next_state_from_ys(ys, action_number, y_min,y_max, seller_count):
+    ydiff = ys - y_min
+    actions = ydiff2action(ydiff,action_number, y_min,y_max)
+    return actions
 
 def step(sellers, train_iter, env_state, actions, next_state, X, seller_utilities, seller_penalties,
          distributed_resources, train_config, evaluate=False):

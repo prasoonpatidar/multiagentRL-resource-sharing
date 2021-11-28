@@ -4,6 +4,7 @@ Functions to evaluate buyer's fixed strategies
 
 import math
 import numpy as np
+import time
 from scipy.optimize import minimize
 
 def getBuyerExperience(sellers, buyer_info):
@@ -40,6 +41,24 @@ def getPurchases(buyer_info, cumulativeBuyerExperience, ys, probAll):
     return X
 
 
+
+# Callback to stop optimization after a set time limit
+class TookTooLong(Warning):
+    pass
+
+class MinimizeStopper(object):
+    def __init__(self, max_sec=60):
+        self.max_sec = max_sec
+        self.start = time.time()
+    def __call__(self, xk=None):
+        elapsed = time.time() - self.start
+        if elapsed > self.max_sec:
+            warnings.warn("Terminating optimization: time limit reached",
+                          TookTooLong)
+        # else:
+        #     # you might want to report other stuff here
+        #     print("Elapsed: %.3f sec" % elapsed)
+
 # Buyer Purchase Calculator
 def buyerPurchaseCalculator(cumulativeBuyerExperience, yAll, V_i, a_i, y_prob, consumer_penalty_coeff):
     # get singleBuyer utility function to maximize
@@ -53,8 +72,9 @@ def buyerPurchaseCalculator(cumulativeBuyerExperience, yAll, V_i, a_i, y_prob, c
                             - consumer_penalty_coeff * (cumulativeBuyerExperience[j] - x_i[j]) ** 2
         return -1 * buyerUtility
 
-    # solve optimization function for each buyer
-    xi_opt_sol = minimize(singleBuyerUtilityFunction, np.zeros(N), bounds=[(0, 100)] * N)
+    # solve optimization function for each buyer try for two seconds
+    x_init = cumulativeBuyerExperience
+    xi_opt_sol = minimize(singleBuyerUtilityFunction, x_init, bounds=[(0, 100)] * N,options={'maxiter':1000})
 
     x_opt = xi_opt_sol.x
     return x_opt

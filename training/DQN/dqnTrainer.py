@@ -4,7 +4,7 @@ Main wrapper for DQN training
 import numpy as np
 
 from training.DQN.dqnAgent import dqnAgent
-from training.seller_utils import action2y
+from training.seller_utils import action2y, ydiff2action
 
 
 def initialize_agents(seller_info, buyer_info, train_config, logger, evaluate=False):
@@ -58,6 +58,10 @@ def get_actions(sellers, state):
 def get_next_state(sellers, state, actions):
     return actions
 
+def get_next_state_from_ys(ys, action_number, y_min,y_max, seller_count):
+    ydiff = ys - y_min
+    actions = ydiff2action(ydiff,action_number, y_min,y_max)
+    return actions
 
 def step(sellers, train_iter, env_state, actions, next_state, X, seller_utilities, seller_penalties,
          distributed_resources, train_config, evaluate=False):

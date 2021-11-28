@@ -12,7 +12,7 @@ from training.DQN.uniform_experience_replay import Memory as UER
 from training.DQN.prioritized_experience_replay import Memory as PER
 
 MAX_EPSILON = 1.0
-MIN_EPSILON = 0.01
+MIN_EPSILON = 0.05
 
 MIN_BETA = 0.4
 MAX_BETA = 1.0

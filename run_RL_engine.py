@@ -22,8 +22,8 @@ if __name__ == '__main__':
     # set run config
     run_config = {
         # 'name': 'marketA_T1',
-        'market_config': "market_large",
-        'train_config': "dqn_r1",
+        'market_config': "marketA",
+        'train_config': "sac_r2",
         'results_dir': 'results/',
         'log_dir': 'logs/',
     }

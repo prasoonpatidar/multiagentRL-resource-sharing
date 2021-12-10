@@ -12,22 +12,28 @@ def ydiff2action(ys,actionNumber,y_min,y_max):
     action = np.floor((ys * actionNumber)/(y_max - y_min))
     return action
 
-def choose_prob(ys, compare=False, yAll=None):
+def choose_prob(ys, compare=False, yAll=None, prob_func='total'):
     probAll = []
     if compare:
         for j in range(0, len(ys)):
-            prob = ys[j] / sum(yAll)
+            if prob_func=='softmax':
+                prob = np.exp(ys[j]) / sum(np.exp(yAll))
+            else:
+                prob = ys[j] / sum(yAll)
             probAll.append(prob)
         yAll = yAll
     else:
         for j in range(0, len(ys)):
-            prob = ys[j] / sum(ys)
+            if prob_func == 'softmax':
+                prob = np.exp(ys[j]) / sum(np.exp(ys))
+            else:
+                prob = ys[j] / sum(ys)
             probAll.append(prob)
         yAll = ys
     return np.array(probAll), np.array(yAll)
 
 
-def get_rewards(sellers, X, yAll):
+def get_rewards(sellers, X, yAll, probAll):
 
     seller_utilties,seller_penalties, seller_distributed_resources  = [],[],[]
     for j in range(len(sellers)):
@@ -43,7 +49,7 @@ def get_rewards(sellers, X, yAll):
         utility = 0
         y = yAll[sellers[j].id]
         for i in range(0, sellers[j].buyer_count):
-            utility += (y / (np.sum(yAll))) * (x_j[i] * (1 / y) - z_j[i] * sellers[j].cost_per_unit)
+            utility += (probAll[j]) * (z_j[i] * (1 / y) - z_j[i] * sellers[j].cost_per_unit)
         penalty = sellers[j].penalty_coeff * (np.sum(z_j) - sellers[j].max_resources)
         seller_utilties.append(utility)
         seller_penalties.append(penalty)

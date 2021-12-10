@@ -46,15 +46,15 @@ def getPurchases(buyer_info, cumulativeBuyerExperience, ys, probAll):
 class TookTooLong(Warning):
     pass
 
-class MinimizeStopper(object):
-    def __init__(self, max_sec=60):
-        self.max_sec = max_sec
-        self.start = time.time()
-    def __call__(self, xk=None):
-        elapsed = time.time() - self.start
-        if elapsed > self.max_sec:
-            warnings.warn("Terminating optimization: time limit reached",
-                          TookTooLong)
+# class MinimizeStopper(object):
+#     def __init__(self, max_sec=60):
+#         self.max_sec = max_sec
+#         self.start = time.time()
+#     def __call__(self, xk=None):
+#         elapsed = time.time() - self.start
+#         if elapsed > self.max_sec:
+#             warnings.warn("Terminating optimization: time limit reached",
+#                           TookTooLong)
         # else:
         #     # you might want to report other stuff here
         #     print("Elapsed: %.3f sec" % elapsed)
@@ -70,13 +70,20 @@ def buyerPurchaseCalculator(cumulativeBuyerExperience, yAll, V_i, a_i, y_prob, c
             buyerUtility += (V_i * math.log(x_i[j] - a_i + np.e) \
                              - x_i[j] / yAll[j]) * y_prob[j] \
                             - consumer_penalty_coeff * (cumulativeBuyerExperience[j] - x_i[j]) ** 2
+        #     buyerUtility += (V_i * math.log(x_i[j] - a_i + np.e) - (x_i[j] / yAll[j])) * y_prob[j]
+        # buyerUtility -= consumer_penalty_coeff*(np.sum(cumulativeBuyerExperience) - np.sum(x_i))**2
         return -1 * buyerUtility
 
     # solve optimization function for each buyer try for two seconds
     x_init = cumulativeBuyerExperience
-    xi_opt_sol = minimize(singleBuyerUtilityFunction, x_init, bounds=[(0, 100)] * N,options={'maxiter':1000})
-
-    x_opt = xi_opt_sol.x
+    # x_init = np.full_like(cumulativeBuyerExperience, 100)
+    if np.random.uniform()>0.5:
+        xi_opt_sol = minimize(singleBuyerUtilityFunction, x_init, bounds=[(0, 100)] * N,options={'maxiter':1000})
+        # xi_opt_sol = minimize(singleBuyerUtilityFunction, x_init, options={'maxiter': 1000})
+        x_opt = xi_opt_sol.x
+    else:
+        x_opt = x_init*np.random.uniform(low=1,high=1.2)
+    # x_opt[x_opt < 0] = 0
     return x_opt
 
 

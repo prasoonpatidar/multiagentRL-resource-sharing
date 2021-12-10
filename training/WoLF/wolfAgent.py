@@ -37,8 +37,8 @@ class wolfAgent:
         self.__next_state = -1
         self.__action = 0
         # self.__y = -1
-        self.__providedResources = [np.zeros(self.buyer_count)]
-        self.__demandedResources = [np.zeros(self.buyer_count)]
+        self.__providedResources = [np.full(self.buyer_count, 0.)]
+        self.__demandedResources = [np.full(self.buyer_count, 0.)]
 
         # create required containers for learner
 
@@ -106,7 +106,7 @@ class wolfAgent:
             self.__policy[curr_state][bestAction] += delta
 
     def getBuyerExperience(self, i):
-        return np.mean([xr[i] for xr in self.__providedResources])
+        return np.mean([xr[i] for xr in self.__providedResources[-100:]])
 
     def add_purchase_history(self, x_j, z_j):
         self.__demandedResources.append(x_j)

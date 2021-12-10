@@ -6,7 +6,8 @@ import numpy as np
 import os
 import pickle
 
-#custom libraries
+
+# custom libraries
 
 class qAgent:
     # constructor for wolfphcAgent
@@ -38,8 +39,8 @@ class qAgent:
         # create required variables for current state and current action
         self.__action = 0
         # self.__y = action2y(self.__action,self.action_number,self.y_min,self.y_max)
-        self.__providedResources = [np.zeros(self.buyer_count)]
-        self.__demandedResources = [np.zeros(self.buyer_count)]
+        self.__providedResources = [np.full(self.buyer_count, 0.)]
+        self.__demandedResources = [np.full(self.buyer_count, 0.)]
 
         if not evaluate:
             if not os.path.exists(self.policy_store):
@@ -48,7 +49,6 @@ class qAgent:
             # Initialize policy for evaluation
             seller_policy = pickle.load(open(f'{self.policy_store}/{self.id}_policy.pb', 'rb'))
             self.__policy = seller_policy
-
 
     def get_next_action(self):
         randomNumber = np.random.random()
@@ -61,7 +61,7 @@ class qAgent:
     def Qmax(self):
         return max(self.__Q)
 
-    def updateQ(self,R,α,df):
+    def updateQ(self, R, α, df):
         # Update Q
         self.__Q[self.__action] = (1 - α) * self.__Q[self.__action] \
                                   + α * (R + df * self.Qmax())
@@ -73,11 +73,11 @@ class qAgent:
         self.__demandedResources.append(x_j)
         self.__providedResources.append(z_j)
 
-    def updatePolicy(self,ε):
-        for i in range(0,self.action_number):
+    def updatePolicy(self, ε):
+        for i in range(0, self.action_number):
             self.__policy[i] = ε / self.action_number
         bestAction = np.argmax(self.__Q)
         self.__policy[bestAction] += 1 - ε
 
     def getBuyerExperience(self, i):
-        return np.mean([xr[i] for xr in self.__providedResources])
+        return np.mean([xr[i] for xr in self.__providedResources[-100:]])

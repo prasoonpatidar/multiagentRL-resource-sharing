@@ -80,9 +80,9 @@ def step(sellers, train_iter, env_state, actions, next_state, X, seller_utilitie
             sellers[j].replay_buffer.push(env_state, [actions[sellers[j].id]], seller_reward, next_state, False)
             if len(sellers[j].replay_buffer) > train_config.batch_size:
                 for i in range(train_config.update_itr):
-                    _ = sellers[j].update(train_config.batch_size, reward_scale=10.,
+                    _ = sellers[j].update(train_config.batch_size, reward_scale=100.,
                                           auto_entropy=train_config.auto_entropy,
-                                          target_entropy=-1. * sellers[j].action_size)
+                                          target_entropy=-1. * sellers[j].action_size, soft_tau=0.5)
 
             if train_iter % (train_config.update_step_size) == 0:
                 sellers[j].save_model()

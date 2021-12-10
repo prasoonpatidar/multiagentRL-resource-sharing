@@ -15,22 +15,24 @@ import matplotlib.pyplot as plt
 import itertools
 
 # import custom libraries
+# from training_plot import  , getX, sliceList
 
 train_dir = '../results/training'
 eval_dir = '../results/evaluation'
 plot_dir = '../results/plots'
-name = 'test3'
-market_config = "test_market"
-train_config = "q_r1"
-
-
-results = pickle.load(open(f'{eval_dir}/{name}_{market_config}_{train_config}.pb','rb'))
+# name = 'test3'
+# market_config = "test_market"
+# train_config = "q_r1"
+#
+#
+# results = pickle.load(open(f'{eval_dir}/{name}_{market_config}_{train_config}.pb','rb'))
 
 # load compare results
 compare_dir = '../results/compare'
 compare_name = 'compare1'
-market_name = 'test_market'
+market_name = 'looseMarket'
 compare_results = pickle.load(open(f'{compare_dir}/{compare_name}_{market_name}.pb','rb'))
+sliceCompare = 100
 
 def get_performance(results):
     pricesHistory = results['price_history'] # P_ij
@@ -148,22 +150,22 @@ class performance():
         plt.savefig(f'{plot_dir}/{name}_{market_config}_{train_config}_{title}.png', dpi=150)
 
 
-def slice_params(params):
-    env_params = [val[:-1] for val in params]
+def slice_params(compare_seller_id, params):
+    env_params = [np.concatenate((val[:compare_seller_id],val[compare_seller_id+1:])) for val in params]
     mean = []
     for values in env_params:
         mean.append(sum(values) / len(values))
-    list(itertools.chain.from_iterable(mean))
+    # list(itertools.chain.from_iterable(mean))
     t_params = [val[-1] for val in params]
     return mean, t_params
 
 def get_socialWelfare(iterates, buyerUtilitiesHistory, sellerUtilitiesHistory):
     socialWelfare = []
     for t in range(iterates):
-        buyU = buyerUtilitiesHistory[t]
-        list(itertools.chain.from_iterable(buyU))
+        buyU = list(buyerUtilitiesHistory[t])
+        # list(itertools.chain.from_iterable(buyU))
         sellerU = sellerUtilitiesHistory[t]
-        socialWelfare.append(sum(sum(buyU)) + sum(sellerU))
+        socialWelfare.append(np.sum(buyU) + np.sum(sellerU))
     return socialWelfare
 
 
@@ -176,7 +178,8 @@ def data_slice(compare_results):
     i = -1
     for results in compare_results:
         i += 1
-        agent_name = results['compared_agents'][-1]
+        compare_seller_id = results['compare_seller_id']
+        agent_name = results['compared_agents'][compare_seller_id]
         labels.append(agent_name)
 
         pricesHistory, purchasesHistory, \
@@ -184,9 +187,10 @@ def data_slice(compare_results):
         sellerUtilitiesHistory, buyerUtilitiesHistory = get_performance(results)
 
         # get the average market price, and target agent's price
-        env_price, t_price = slice_params(pricesHistory)
+
+        env_price, t_price = slice_params(compare_seller_id, pricesHistory)
         # get the average market seller utility and target agent's utility
-        env_unity, t_utility = slice_params(sellerUtilitiesHistory)
+        env_unity, t_utility = slice_params(compare_seller_id, sellerUtilitiesHistory)
 
         if i==0:
             # only append the env parameters at the first time
@@ -200,17 +204,53 @@ def data_slice(compare_results):
         socialWelfares.append(socialWelfare)
     return prices, seller_utilities, labels, socialWelfares
 
-def plot_sellers(ys, labels, title, n_fig=None):
-    x = [*range(len(ys[0]))]
+def get_average(segment):
+    average = sum(segment)/len(segment)
+    return average
+
+
+def slice_data(data, slice):
+    container = []
+    for iter in range(1, len(data)):
+        if iter % slice == 0:
+            ndata = data[:iter]
+            segment = ndata[-slice:]
+            container.append(get_average(segment))
+    return container
+
+def sliceList(dataList, slice):
+    container = []
+    for data in dataList:
+        dataS = slice_data(data, slice)
+        container.append(dataS)
+    return container
+
+def getX(sl, l):
+    x = []
+    for iter in range(1, len(l)):
+        if iter % sl == 0:
+            x.append(iter)
+    return x
+
+def plot_sellers(x, ys, labels, title, n_fig=None):
+    # x = [*range(len(ys[0]))]
+    # x = getX(sliceCompare, ys[0])
     plt.figure(n_fig)
     for id in range(len(ys)):
-        plt.plot(x, ys[id], label=labels[id])
+        if labels[id]=='market average':
+            plt.plot(x, ys[id], label=labels[id],linewidth=5,alpha=0.7)
+        elif labels[id] == 'dqn_duel_r2':
+            plt.plot(x, ys[id], label='dqn_duel')
+        else:
+            plt.plot(x, ys[id], label=labels[id].split("_")[0])
     plt.legend(loc="upper left")
     plt.title(title)
-    plt.savefig(f'{plot_dir}/{market_config}_{title}.png', dpi=150)
+    plt.savefig(f'{plot_dir}/{market_name}_{title}.png', dpi=150)
 
 
 prices, seller_utilities, labels, socialWelfares = data_slice(compare_results)
-plot_sellers(prices, labels, 'Price comparison', n_fig=0)
-plot_sellers(seller_utilities, labels, 'seller utilities comparison', n_fig=1)
-plot_sellers(socialWelfares, labels, 'social welfares comparison', n_fig=2)
+prices =  [list(p) for p in prices]
+x = getX(sliceCompare, prices[0])
+plot_sellers(x, sliceList(prices, sliceCompare), labels, 'Price comparison', n_fig=0)
+plot_sellers(x,sliceList(seller_utilities, sliceCompare), labels, 'seller utilities comparison', n_fig=1)
+plot_sellers(x,sliceList(socialWelfares, sliceCompare), labels, 'social welfares comparison', n_fig=2)

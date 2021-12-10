@@ -9,7 +9,7 @@ import os, sys
 import pickle
 
 # import custom libraries
-from configs.train_configs import train_config, get_train_config
+from configs.train_configs import train_configs, get_train_config
 from training.get_trainer import get_trainer
 import training.seller_utils as seller_utils
 import training.buyer_utils as buyer_utils
@@ -18,11 +18,11 @@ import training.buyer_utils as buyer_utils
 # step 2: random generate other types of RL agent (N-1) number of agents--as environment
 # step 3: keep the environment the same, come the reward and utilities learned by the target agent
 
-agents_list = list(train_config.keys())
+agents_list = ['q_r1','wolf_r1','dqn_r2','ddqn_r2','dqn_duel_r2']
 print('RL algorithms included in the comparison ',agents_list)
 
 def get_env_agents(seller_info, agents_list):
-    num_env_agents= seller_info.count-1
+    num_env_agents= seller_info.count
     # index_agents = random.sample(range(0, len(agents_list)), num_env_agents)
     index_agents = np.random.choice(range(0, len(agents_list)), num_env_agents)
     env_agents = []
@@ -59,7 +59,7 @@ def init_agents(agents, seller_info, agents_list,buyer_info, logger, market_name
         sellers.append(seller)
     return sellers
 
-def compare_agents(seller_info):
+def compare_agents(compare_seller_id, seller_info):
     env_agents, name_env_agents, env_configs = get_env_agents(seller_info, agents_list)
     target_agents, target_configs = get_target_agents()
     agents_comp = []
@@ -70,10 +70,11 @@ def compare_agents(seller_info):
         agents = name_env_agents.copy()
         configs = env_configs.copy()
         # add one target seller to the environment
-        sellers.append(target_agents[seller_id])
 
-        agents.append( agents_list[seller_id])
-        configs.append( target_configs[seller_id])
+        sellers[compare_seller_id]=target_agents[seller_id]
+
+        agents[compare_seller_id]=agents_list[seller_id]
+        configs[compare_seller_id]=target_configs[seller_id]
 
         # append comparision plans to list
         agents_comp.append(sellers)
@@ -116,7 +117,7 @@ def compare_policy(seller_info, buyer_info, train_configs, sellers,agents, logge
     start_time = time.time()
     for compare_iter in range(0, iterations):
 
-        if compare_iter % 10 == 0:
+        if compare_iter % 100 == 0:
             logger.info("Finished %d compare iterations in %.3f secs..." % (compare_iter, time.time() - start_time))
 
         # get the prices for all seller agents
@@ -178,17 +179,17 @@ def compare_policy(seller_info, buyer_info, train_configs, sellers,agents, logge
 
     return compare_dict
 
-def run_comparison(seller_info, buyer_info, logger_pass, market_name, iterations):
+def run_comparison(compare_seller_id, seller_info, buyer_info, logger_pass, market_name, iterations):
     # Initialize the logger
     logger = logger_handle(logger_pass)
-    agents_comp, agent_names, train_configs = compare_agents(seller_info)
+    agents_comp, agent_names, train_configs = compare_agents(compare_seller_id,seller_info)
 
     # add action counts in all train configs
     for config_list in train_configs:
         for config in config_list:
             config.action_count = seller_info.action_count
-            # policy_dir_path = config.policy_store.split("/")
-            # config.policy_store = '/'.join([policy_dir_path[0],market_name,config.config_name])
+            policy_dir_path = config.policy_store.split("/")
+            config.policy_store = '/'.join([policy_dir_path[0],market_name,config.config_name])
 
     # a container to store the comparison results
     compare_results = []
@@ -203,6 +204,7 @@ def run_comparison(seller_info, buyer_info, logger_pass, market_name, iterations
         sellers = init_agents(agents, seller_info, agents_list,buyer_info, logger, market_name, train_config, comp_agentsName)
         # call the comparison function
         compare_dict = compare_policy(seller_info, buyer_info, train_config, sellers,agents, logger, comp_agentsName, iterations)
+        compare_dict.update({'compare_seller_id':compare_seller_id})
         compare_results.append(compare_dict)
     return compare_results
 

@@ -106,9 +106,9 @@ class sacAgent:
         self.__providedResources.append(z_j)
 
     def getBuyerExperience(self, i):
-        return np.mean([xr[i] for xr in self.__providedResources])
+        return np.mean([xr[i] for xr in self.__providedResources[-100:]])
 
-    def update(self, batch_size, reward_scale=10., auto_entropy=True, target_entropy=-2, gamma=0.99, soft_tau=1e-2):
+    def update(self, batch_size, reward_scale=10., auto_entropy=True, target_entropy=-2, gamma=0.9, soft_tau=1e-1):
         state, action, reward, next_state, done = self.replay_buffer.sample(batch_size)
         # print('sample:', state, action,  reward, done)
 

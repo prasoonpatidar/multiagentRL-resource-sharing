@@ -11,6 +11,7 @@ Input:
 # import python libraries
 import pickle
 import numpy as np
+import os
 import matplotlib.pyplot as plt
 import itertools
 
@@ -19,12 +20,16 @@ import itertools
 train_dir = '../results/training'
 eval_dir = '../results/evaluation'
 plot_dir = '../results/plots'
-name = 'test3'
-market_config = "test_market"
-train_config = 'wolfPHC_r2'
+name = 'test4'
+market_config = "looseMarket"
+train_config = 'ddqn_r2'
+slice = 500
 
+results = pickle.load(open(f'{train_dir}/{market_config}_{train_config}.pb','rb'))
 
-results = pickle.load(open(f'{eval_dir}/{market_config}_{train_config}.pb','rb'))
+plot_dir = f"{plot_dir}/{market_config}_{train_config}_{slice}"
+if not os.path.exists(plot_dir):
+    os.makedirs(plot_dir)
 
 pricesHistory = results['price_history'] # P_ij
 purchasesHistory = results['demand_history'] # X_ij
@@ -41,7 +46,7 @@ def get_average(segment):
 def slice_data(data, slice):
     container = []
     for iter in range(1, len(data)):
-        if iter % 100 == 0:
+        if iter % slice == 0:
             ndata = data[:iter]
             segment = ndata[-slice:]
             container.append(get_average(segment))
@@ -101,7 +106,7 @@ def sliceList(dataList, slice):
 def getX(slice):
     x = []
     for iter in range(1, len(pricesHistory)):
-        if iter % 100 == 0:
+        if iter % slice == 0:
             x.append(iter)
     return x
 
@@ -192,6 +197,26 @@ def one_agent_plot(single_agent, slice, x, title, name):
     plt.suptitle(name, y=0.98, fontsize=16)
     plt.savefig(f'{plot_dir}/Buyer VS Seller_{name}_{slice}.png', dpi=150)
 
+def total_social_welfare(single_agent, slice, x, title, name):
+    individual = sliceList(single_agent, slice)
+    fig, axn = plt.subplots(1, 2, figsize=(14, 8), sharey=True)
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.9)
+
+    for ele_i in range(len(individual)):
+        if ele_i < 1:
+            nameT = 'Seller'
+        else:
+            nameT = 'Buyer'
+        for indx in range(len(individual[ele_i][0])):
+            axn[ele_i].plot(x, [e[indx] for e in individual[ele_i]], label = f'{nameT}_{indx+1}')
+        axn[ele_i].legend(loc='upper left')
+        axn[ele_i].set_title(title[ele_i])
+        axn[ele_i].set_xlabel('Iterations')
+        axn[ele_i].set_ylabel('Utilities')
+    plt.suptitle(name, y=0.98, fontsize=16)
+    plt.savefig(f'{plot_dir}/Buyer VS Seller_{name}_{slice}.png', dpi=150)
+
 
 
 def individual_plot(slice):
@@ -234,7 +259,7 @@ def individual_plot(slice):
     #
     # plt.savefig(f'{plot_dir}/seller VS buyer_{slice}_{name}.png', dpi=150)
 
-slice = 100
+
 x = getX(slice)
 provided_seller, provided_buyer = trading(providedResourcesHistory)
 
@@ -262,15 +287,47 @@ bp = [sum(e) for e in slice_data(buyer_penalty_history, slice)]
 bp_std = [np.std(e) for e in slice_data(buyer_penalty_history, slice)]
 sp = [sum(e) for e in slice_data(seller_penalty_history, slice)]
 sp_std = [np.std(e) for e in slice_data(seller_penalty_history, slice)]
-plt.errorbar(x, bU,b_std, label='Buyer utilities', c='g', marker='^')
-plt.errorbar(x, bp, bp_std, label='Buyer penalties', c='g', linestyle='--', marker='^')
-plt.errorbar(x, sU, s_std, label='Seller utilities', c='b', marker='^')
-plt.errorbar(x, sp, sp_std, label='Seller penalties', c='b', linestyle='--', marker='^')
+plt.errorbar(x, bU,b_std, label='Buyer utilities', c='g')
+plt.errorbar(x, bp, bp_std, label='Buyer penalties', c='g', linestyle='--')
+plt.errorbar(x, sU, s_std, label='Seller utilities', c='b')
+plt.errorbar(x, sp, sp_std, label='Seller penalties', c='b', linestyle='--')
 plt.legend(loc='upper left')
 plt.xlabel('Iterations')
 plt.ylabel('Utilities')
 plt.title("Utilities VS penalties")
 plt.savefig(f'{plot_dir}/seller VS buyer_{slice}_Utilities VS penalties', dpi=150)
+
+plt.subplots()
+bU = np.array([sum(e) for e in slice_data(buyerUtilitiesHistory, slice)])
+# b_std = [np.std(e) for e in slice_data(buyerUtilitiesHistory, slice)]
+sU = np.array([sum(e) for e in slice_data(sellerUtilitiesHistory, slice)])
+# s_std = [np.std(e) for e in slice_data(sellerUtilitiesHistory, slice)]
+plt.plot(x, sU+bU, label='Social Welfare', c='g', marker='.')
+# plt.errorbar(x, bp, bp_std, label='Buyer penalties', c='g', linestyle='--', marker='^')
+# plt.errorbar(x, sU, s_std, label='Seller utilities', c='b', marker='^')
+# plt.errorbar(x, sp, sp_std, label='Seller penalties', c='b', linestyle='--', marker='^')
+plt.legend(loc='upper left')
+plt.xlabel('Iterations')
+plt.ylabel('Total Utility')
+plt.title("Social Welfare")
+plt.savefig(f'{plot_dir}/social_welfare_{slice}', dpi=150)
+
+
+plt.subplots()
+socialLoss = np.array(slice_data(get_loss(seller_penalty_history, buyer_penalty_history), slice))
+# b_std = [np.std(e) for e in slice_data(buyerUtilitiesHistory, slice)]
+# sU = np.array([sum(e) for e in slice_data(sellerUtilitiesHistory, slice)])
+# s_std = [np.std(e) for e in slice_data(sellerUtilitiesHistory, slice)]
+plt.plot(x, socialLoss, label='Total Penalties', c='r', marker='.')
+# plt.errorbar(x, bp, bp_std, label='Buyer penalties', c='g', linestyle='--', marker='^')
+# plt.errorbar(x, sU, s_std, label='Seller utilities', c='b', marker='^')
+# plt.errorbar(x, sp, sp_std, label='Seller penalties', c='b', linestyle='--', marker='^')
+plt.legend(loc='upper left')
+plt.xlabel('Iterations')
+plt.ylabel('Total Penalty')
+plt.title("Total penalties")
+plt.savefig(f'{plot_dir}/social_loss_{slice}', dpi=150)
+
 
 # plot the buyer utilities and seller utilities
 plt.subplots()
@@ -281,9 +338,14 @@ one_agent_plot(bsU , slice, x, sub_titles, sup_title)
 
 #plot seller prices
 plt.subplots()
+seller_count = len(sellerUtilitiesHistory[0])
 s_price = [np.mean(e) for e in slice_data(pricesHistory, slice)]
-price_std = [np.std(e) for e in slice_data(pricesHistory, slice)]
-plt.errorbar(x,s_price, price_std, label='Seller prices', c='b', marker='^' )
+# price_std = [np.std(e) for e in slice_data(pricesHistory, slice)]
+# plt.errorbar(x,s_price, label='Seller Prices', c='g', marker='.' )
+for i in range(seller_count):
+    s_price_i = [e[i] for e in slice_data(pricesHistory, slice)]
+    # price_std = [np.std(e) for e in slice_data(pricesHistory, slice)]
+    plt.errorbar(x,s_price_i, label=f'seller {i}', marker='.' )
 plt.legend(loc='upper left')
 plt.xlabel('Iterations')
 plt.ylabel('Prices')
@@ -293,10 +355,18 @@ plt.savefig(f'{plot_dir}/seller_{slice}_Seller prices', dpi=150)
 #plot buyer demand
 plt.subplots()
 s_price = [np.mean(e) for e in slice_data(purchasesHistory, slice)]
-price_std = [np.std(e) for e in slice_data(purchasesHistory, slice)]
-plt.errorbar(x,s_price, price_std, label='Buyer demand', c='g', marker='^' )
-plt.legend(loc='upper left')
+# price_std = [np.std(e) for e in sli ce_data(purchasesHistory, slice)]
+# plt.errorbar(x,s_price, label='Buyer demand', c='g', marker='.' )
+buyer_count = len(purchasesHistory[0])
+for i in range(buyer_count):
+    s_purchase_i = [e[i] for e in slice_data(purchasesHistory, slice)]
+    plt.errorbar(x,s_purchase_i, label=f'Buyer {i}', marker='.' )
+# plt.legend()
+plt.legend(loc='center left', fontsize='xx-small', ncol=2,bbox_to_anchor=(1, 0.5))
+
+# plt.ylim(bottom=-2)
 plt.xlabel('Iterations')
 plt.ylabel('Buyer demand')
 plt.title('Buyer demand')
-plt.savefig(f'{plot_dir}/buyer_{slice}_buyer demands', dpi=150)
+# plt.tight_layout()
+plt.savefig(f'{plot_dir}/buyer_{slice}_buyer demands', dpi=150, bbox_inches='tight')

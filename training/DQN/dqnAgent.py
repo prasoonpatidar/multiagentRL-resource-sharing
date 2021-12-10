@@ -74,8 +74,8 @@ class dqnAgent:
         if self.test:
             self.epsilon = MIN_EPSILON
 
-        self.__providedResources = [np.zeros(self.buyer_count)]
-        self.__demandedResources = [np.zeros(self.buyer_count)]
+        self.__providedResources = [np.full(self.buyer_count, 0.)]
+        self.__demandedResources = [np.full(self.buyer_count, 0.)]
 
         # circular buffer to remember past rewards to select best model
         self.max_average_rewards = -np.inf
@@ -111,7 +111,7 @@ class dqnAgent:
         self.__providedResources.append(z_j)
 
     def getBuyerExperience(self, i):
-        return np.mean([xr[i] for xr in self.__providedResources])
+        return np.mean([xr[i] for xr in self.__providedResources[-100:]])
 
     def find_targets_per(self, batch):
         batch_len = len(batch)

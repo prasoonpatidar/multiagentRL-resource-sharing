@@ -19,9 +19,10 @@ if __name__ == '__main__':
     # set a comparison config
     compare_config = {
         'name': 'compare1',
-        'market_config': "marketA",
+        'market_config': "looseMarket",
         'log_dir': 'logs/',
-        'iterations': 100
+        'iterations': 1000,
+        'seller_id':3,
     }
 
     # get config named tuples
@@ -46,7 +47,7 @@ if __name__ == '__main__':
     logger_pass = {'logger_base': logger_master}
 
     market_name = compare_config.market_config
-    compare_results = run_comparison(seller_info, buyer_info, logger_pass, market_name, compare_config.iterations)
+    compare_results = run_comparison(compare_config.seller_id, seller_info, buyer_info, logger_pass, market_name, compare_config.iterations)
 
     compare_file = f'results/compare/{compare_config.name}_{compare_config.market_config}.pb'
     pickle.dump( compare_results, open(compare_file, 'wb'))

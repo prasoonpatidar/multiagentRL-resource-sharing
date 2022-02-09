@@ -151,7 +151,7 @@ def compare_policy(seller_info, buyer_info, train_configs, sellers,agents, logge
         buyer_penalty_history.append(buyer_penalties)
 
         # get seller utilities based on current state and actions
-        seller_utilities, seller_penalties, distributed_resources = seller_utils.get_rewards(sellers, X, yAll)
+        seller_utilities, seller_penalties, distributed_resources = seller_utils.get_rewards(sellers, X, yAll,probAll)
         seller_utility_history.append(seller_utilities)
         seller_penalty_history.append(seller_penalties)
         provided_resource_history.append(distributed_resources)

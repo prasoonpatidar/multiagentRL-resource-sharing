@@ -2,7 +2,7 @@
   "seller": {
     "count": 5,
     "action_count": 10,
-    "max_resources": [15,12,15,18,16],
+    "max_resources": [55,68,46,60,62],
     "per_unit_cost": [12,18,15,14,12],
     "idle_penalty": 0.2,
     "min_price": 20,
